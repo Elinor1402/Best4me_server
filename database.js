@@ -1,7 +1,7 @@
 //const bcryptjs = require('bcryptjs');
 const {compareSync } = require('bcryptjs');
 const {Pool} = require('pg');
-const { database, user } = require('pg/lib/defaults');
+const {user } = require('pg/lib/defaults');
 
 const pool = new Pool({
   //user: 'fs-info',
@@ -19,6 +19,9 @@ const pool = new Pool({
 
 //my change
 pool.connect();
+
+// Define the updateStatus function
+
 
 const login = function(companyID, password){
    console.log("try connect",companyID,password);
@@ -128,4 +131,30 @@ const getusers= function(companyID)
             });
     });
 }
-module.exports = {register, login, findUser,saveEmail,getusers};
+
+const updateFillStatus =function(companyID, usersData) {
+    
+    return new Promise(function(resolve, reject) {
+        
+        usersData.slice(1).map(row => {
+            const email = row[row.length - 1].trim(); // Extract email address
+            console.log("The email is",email);
+            if (email) {
+                pool.query(`UPDATE users_email SET isdone=${true} WHERE company_id=${companyID} AND email='${email}'`)
+                .then(result => {
+                    // console.log("Result is", result);
+                    resolve(1);
+                })
+                .catch(e => {
+                    console.error(e);
+                    reject(e);
+                });
+            }
+        });
+        
+    });
+}
+
+
+
+module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus};

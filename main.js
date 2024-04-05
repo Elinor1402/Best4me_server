@@ -79,14 +79,19 @@ app.post('/uploadfile', async (req,res)=>{
     }
 
     else if (fileExtension == '.csv'){ // Checking if the file ends with .csv
-       emails.readCSV(file.name,companyID)
+        console.log("csv"+ file.name);
+       //emails.readCSV(file.name,companyID)
+       emails.readCSV(file.name,companyID).then(() =>{                  
+        res.status(200).send("emails were sent");
+    });
     }
     else
     {
         res.status(500).send("Wrong type file");
     }
     //delete temprory file
-    fs.rmdir('./uploads/' + file.name, { recursive: true }, (err) => {
+    //fs.rmdir depreacated
+    fs.rm('./uploads/' + file.name, { recursive: true }, (err) => {
         if (err) {
             // throw err;
             res.status(500).send("invalid Name");
@@ -118,7 +123,7 @@ app.get('/admin', function(req, res, next) {
 });
 
 app.get('/users', function(req,res){
-    database.getusers(req.query.CompanyID)
+    database.getusers(req.query.companyID)
     .then(payload =>{                  
             
         const data = {
@@ -134,6 +139,21 @@ app.get('/users', function(req,res){
     });
 })
     
+app.put('/updateUserStatus', function (req,res){
+    const data = req.body;
+    console.log("Csv data",data);
+    database.updateFillStatus(data.companyID, data.csvData)
+    .then(payload =>{                  
+            
+        res.status(200).send(); 
+        
+    })
+    .catch(err =>{
+        //console.log(err.toString());
+        res.status(400).send(err.toString());    
+    });
+})
+
 
 const port = 3000
 app.listen(port, () => {

@@ -6,27 +6,27 @@ var nodemailer = require('nodemailer');
 const database = require('./database');
 const { password } = require('pg/lib/defaults');
 require('dotenv').config();
-
+const { parse } = require("csv-parse");
 
 // This func reads CSV file, and create from each email "username" = email and password.
 // For example: DavidDoe@gmail.com = email, password = DavidDoe
-const readCSV =function (fileName, companyID){
-    fs.createReadStream(fileName)
-    .pipe(csv({
-        delimiter:","
-    })
-    ).on('headers', (headers) => {
-        head = headers[0];
+const readCSV = async function (fileName, companyID){
+    fs.createReadStream('uploads/'+fileName)
+    .pipe(parse({
+        delimiter: ","
+    }))
+    .on('error', (error) => {
+        console.error('Error reading CSV file:', error);
     })
     .on('data', (row) => {
-        if(row[head] != undefined){
-            email = row[head];
-            password = row[head].split("@")[0]; // Split the email before @ and after - and take only the before
-            console.log(email);
-            console.log(password);
-            //database.saveEmail(email, password, companyID); // saving every email and password on the database
-            sendEmail(email, password, companyID); // sending email to the employee
-        }
+     
+        Object.values(row).forEach((cellData) => {
+            if(cellData){
+                var password = cellData.split("@")[0];
+                sendEmail(cellData, password, companyID); // sending email to the employee
+            }
+        });
+      
     })
     .on('end', () => {
         console.log('CSV file successfully processed');
@@ -82,7 +82,7 @@ const  sendEmail= async function (email, password, companyID){
         to: email,
         subject: 'Welcome to Best4me Company',
         text: `Your username is: ${email} and your password is: ${password}
-             link: https://forms.gle/pd6AGEen8vAXtiEv7`
+             link: https://forms.gle/Ka4ZMa4et2xAGSwZ9`
       };
       transporter.sendMail(mailOptions, function(error, info){
         if (error) {
