@@ -115,7 +115,8 @@ const getusers= function(companyID)
         pool.query(`SELECT * FROM users_email WHERE company_id= ${companyID}`)
         .then(users =>{
             // console.log("users",users);
-            if(!user.length)
+            //need to check
+            if(!users.rows.length)
             reject(new Error(`Users not found`));
             
             else
@@ -156,5 +157,28 @@ const updateFillStatus =function(companyID, usersData) {
 }
 
 
+const getquestions= function(companyID)
+{
+    return new Promise(function(resolve, reject){
+        console.log("get questions",companyID);
+        pool.query(`SELECT * FROM questions WHERE company_id=${companyID} OR code=1`)
+        .then(questions =>{
+             console.log("questiond",questions.rows);
+            if(!questions.rows.length)
+            reject(new Error(`Questions not found`));
+            
+            else
+            {
+               //console.log( "new Date",users.rows[0].email_date);
+                resolve(questions);
+                
+            }
+               
+            }).catch(err =>{
+                console.log(err);
+                reject(err);
+            });
+    });
+}
 
-module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus};
+module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus,getquestions};

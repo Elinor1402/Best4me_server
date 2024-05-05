@@ -154,6 +154,22 @@ app.put('/updateUserStatus', function (req,res){
     });
 })
 
+app.get('/questions', function(req,res){
+    database.getquestions(req.query.companyID)
+    .then(payload =>{                  
+            
+        const data = {
+            questions:payload
+        }
+        // console.log(data);
+        res.status(200).send(data); 
+        
+    })
+    .catch(err =>{
+        //console.log(err.toString());
+        res.status(400).send(err.toString());    
+    });
+})
 
 const port = 3000
 app.listen(port, () => {
