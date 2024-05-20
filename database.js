@@ -28,7 +28,7 @@ const login = function(companyID, password){
 
     return new Promise(function(resolve, reject){
     
-        pool.query(`SELECT company_id, password FROM users_info WHERE company_id= 
+        pool.query(`SELECT company_id, password FROM company_info WHERE company_id= 
         ${companyID}`).then(user =>{
             //console.log(user);
             if(user.rowCount==0){ // if the user doesn't exist
@@ -53,15 +53,14 @@ const login = function(companyID, password){
     })
 }
 
-const register = function(email,password, name, domain,establishment, occupation, location, size, amountCEO,amountManagers,
-                         amountEmployees,systemUsed){
+const register = function(email,password, name, domain,establishment, loc_glob, location, size){
         return new Promise(function(resolve, reject){
      
             var companyID= Math.floor(1+Math.random()*9000);
             // console.log("Company id",companyID);
 
-            pool.query(`INSERT INTO users_info (company_id, year_establishment, organization_size, num_of_ceo, num_of_managers, num_of_employees, email, organization_domain, organization_name, occupation, location, organization_system_used, password)
-                VALUES( ${companyID} , '${establishment.toDateString()}', ${size} , ${amountCEO} ,${amountManagers},${amountEmployees}, '${email}', '${domain}' , '${name}', '${occupation}' , '${location}' , '${systemUsed}', '${password}' )`).
+            pool.query(`INSERT INTO company_info (company_id, email, password, organization_name, organization_domain, year_establishment, loc_or_glob, branch_location, organization_size)
+                VALUES( ${companyID} , '${email}', '${password}' , '${name}' ,'${domain}', ${establishment}, '${loc_glob}', '${location}' , '${size}')`).
                 then(result => {
                     // var message = `Your Company ID is ${companyID}`;
                     var message = `${companyID}`;

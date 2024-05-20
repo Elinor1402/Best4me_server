@@ -45,10 +45,10 @@ app.post('/log-in', (req,res)=>{
 
 app.post('/sign-up', (req,res)=>{
     const data = req.body;
+    console.log("The data is",data);
     database.register(data.email,data.companyPassword,
-        data.compName,data.domain,new Date(data.establishment),data.occupation,
-        data.location, data.size,  data.numOfCeo,data.numOfManagers, data.numOfEmployees,
-        data.systemUsed).then((message) =>{
+        data.compName,data.domain, data.establishment,data.loc_glob,
+        data.location, data.size).then((message) =>{
             const data = {
                 message:message.toString()
             }
