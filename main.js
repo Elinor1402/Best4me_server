@@ -171,6 +171,49 @@ app.get('/questions', function(req,res){
     });
 })
 
+// API route to get the first question
+app.get('/first-question', async (req, res) => {
+    const result = await database.getFirstQuestions();
+    console.log("The final result is 2",result);
+    if (result.error) {
+        if (result.error === 'First question not found') {
+            res.status(404).send(result);
+        } else {
+            res.status(500).send(result);
+        }
+    } else {
+        res.status(200).send(result); 
+        //res.json(result);
+    }
+});
+
+// API route to get the next question based on the answer
+app.get('/api/next-question/:answerId', async (req, res) => {
+    const answerId = req.params.answerId;
+    try {
+        const atoqResult = await pool.query('SELECT next_question_id FROM atoq WHERE answer_id = $1', [answerId]);
+        const atoq = atoqResult.rows[0];
+
+        if (atoq) {
+            const nextQuestionResult = await pool.query('SELECT * FROM questions WHERE id = $1', [atoq.next_question_id]);
+            const nextQuestion = nextQuestionResult.rows[0];
+
+            if (nextQuestion) {
+                const answersResult = await pool.query('SELECT * FROM answers WHERE question_id = $1', [nextQuestion.id]);
+                nextQuestion.answers = answersResult.rows;
+                res.json(nextQuestion);
+            } else {
+                res.status(404).json({ error: 'Next question not found' });
+            }
+        } else {
+            res.status(404).json({ error: 'No mapping found for this answer' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
 const port = 3000
 app.listen(port, () => {
     console.log(`App listening at http://localhost:${port}`)

@@ -180,4 +180,50 @@ const getquestions= function(companyID)
     });
 }
 
-module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus,getquestions};
+
+const getFirstQuestions = async function() {
+    try {
+        // Select all questions with page = 1
+        const questionsResult = await pool.query('SELECT * FROM questions WHERE page = $1', [1]);
+        const questions = questionsResult.rows;
+
+        // Fetch answers for each question using qtoa table
+        for (let question of questions) {
+            const qtoaResult = await pool.query('SELECT answerid FROM qtoa WHERE questionid = $1', [question.id]);
+            if(question.id ===3)
+            {
+               // console.log("The answers are:",qtoaResult);
+            }
+            const answerIds = qtoaResult.rows.map(row => row.answerid);
+            console.log("Answers id",answerIds)
+
+            if (answerIds.length > 0) {
+                console.log("Got here");
+                const answersResult = await pool.query('SELECT * FROM answers WHERE id = ANY($1::int[])', [answerIds]);
+                question.answers = answersResult.rows;
+            } else {
+                question.answers = [];
+            }
+            // Fetch answer type for each question from q_appearance table
+            const answerTypeResult = await pool.query('SELECT answer_type FROM q_appearance WHERE questionid = $1', [question.id]);
+            
+            // Assign answer_type to question
+            if (answerTypeResult.rows.length > 0) {
+                // Assuming there is only one answer type associated with each question
+                question.answerType = answerTypeResult.rows[0].answer_type;
+            } else {
+                // If no answer type found, set it to null or a default value
+                question.answerType = null; // Or set a default value as needed
+            }
+        }
+
+        console.log("questions", questions);
+        return questions;
+        
+    } catch (error) {
+        console.log(error);
+        return { error: 'Internal server error' };
+    }
+}
+
+module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus,getquestions,getFirstQuestions};
