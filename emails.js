@@ -82,7 +82,7 @@ const  sendEmail= async function (email, password, companyID){
         to: email,
         subject: 'Welcome to Best4me Company',
         text: `Your username is: ${email} and your password is: ${password}
-             link: https://forms.gle/Ka4ZMa4et2xAGSwZ9`
+             link: http://localhost:3001/Health`
       };
       transporter.sendMail(mailOptions, function(error, info){
         if (error) {

@@ -2,6 +2,7 @@
 const {compareSync } = require('bcryptjs');
 const {Pool} = require('pg');
 const {user } = require('pg/lib/defaults');
+const bcrypt = require('bcryptjs');
 
 const pool = new Pool({
   //user: 'fs-info',
@@ -24,25 +25,24 @@ pool.connect();
 
 
 const login = function(companyID, password){
-   console.log("try connect",companyID,password);
+   //console.log("try connect",companyID,password);
 
     return new Promise(function(resolve, reject){
     
-        pool.query(`SELECT company_id, password FROM company_info WHERE company_id= 
-        ${companyID}`).then(user =>{
-            //console.log(user);
+        pool.query(`SELECT "company_id", "Password", "Organizations domain" as od FROM "company_info" WHERE "company_id" = $1`, [companyID]).then(user =>{
+            console.log("User details",user);
             if(user.rowCount==0){ // if the user doesn't exist
                console.log("faild  user");
                 //reject(false);
                 reject(new Error('companyID does not exist'));
             }
             //if the password is incorrect
-            else if(!compareSync(password, user.rows[0].password)){
+            else if(!compareSync(password, user.rows[0].Password)){
                 reject(new Error('wrong password'));
             }
             else{ // if the user exists and the password is correct
                 //resolve(1);
-                resolve('Lets start!');
+                resolve(user.rows.od);
             }
 
         }).catch(err =>{
@@ -53,23 +53,40 @@ const login = function(companyID, password){
     })
 }
 
-const register = function(email,password, name, domain,establishment, loc_glob, location, size){
+const register = function(formData){
         return new Promise(function(resolve, reject){
      
             var companyID= Math.floor(1+Math.random()*9000);
-            // console.log("Company id",companyID);
+            pool.query(`INSERT INTO company_info (company_id) VALUES(${companyID})`)
+            .then(()=>{
+                if (typeof formData === 'object' && formData !== null) {
+                  
+                    if (formData.Password) {
+                        const hashedPassword = bcrypt.hashSync(formData.Password, 5);
+                        formData.Password = hashedPassword;
+                    }
 
-            pool.query(`INSERT INTO company_info (company_id, email, password, organization_name, organization_domain, year_establishment, loc_or_glob, branch_location, organization_size)
-                VALUES( ${companyID} , '${email}', '${password}' , '${name}' ,'${domain}', ${establishment}, '${loc_glob}', '${location}' , '${size}')`).
-                then(result => {
-                    // var message = `Your Company ID is ${companyID}`;
-                    var message = `${companyID}`;
-                    resolve(message);
-                }).catch(e => {
-                    console.error(e);
-                    //reject(e.detail);
-                }).then(() => {
-                });
+                    Object.entries(formData).forEach(([key, value], index) => {
+                        const sanitizedKey = `"${key.replace(/"/g, '""')}"`;
+                        const queryText = `UPDATE company_info SET ${sanitizedKey} = $1 WHERE company_id = $2`;
+                        pool.query(queryText, [value, companyID])
+                        .then(() => console.log(`Inserted ${key}: ${value}`))
+                        .catch(err => {
+                            console.error(`Error inserting ${key}: ${err}`);
+                            throw new Error('Server error');
+                        });
+                    });
+                }
+                else{
+                reject( "formData is not an object. It is:", typeof formData);
+                }
+            })
+            .catch(e => {
+                console.error(e);
+               reject(e.detail);
+            })
+            var message = `${companyID}`;
+            resolve(message);
         });
 }
 
@@ -190,10 +207,7 @@ const getFirstQuestions = async function() {
         // Fetch answers for each question using qtoa table
         for (let question of questions) {
             const qtoaResult = await pool.query('SELECT answerid FROM qtoa WHERE questionid = $1', [question.id]);
-            if(question.id ===3)
-            {
-               // console.log("The answers are:",qtoaResult);
-            }
+            
             const answerIds = qtoaResult.rows.map(row => row.answerid);
             console.log("Answers id",answerIds)
 
@@ -226,4 +240,60 @@ const getFirstQuestions = async function() {
     }
 }
 
-module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus,getquestions,getFirstQuestions};
+// Function to get health questions
+const gethealthQuestions = async function(domainID) {
+  // console.log("domain id",domainID);
+    try {
+      // Query to fetch all required data using joins
+      const query = `
+        SELECT
+          q.id AS question_id,
+          q.question,
+          qa.answer_type,
+          a.id AS answer_id,
+          a.answer
+        FROM
+        atoq at JOIN questions q ON q.id = at.next_questionid
+        JOIN q_appearance qa ON qa.questionid = q.id
+        LEFT JOIN qtoa qt ON qt.questionid = q.id AND qa.answer_type = 2
+        LEFT JOIN answers a ON a.id = qt.answerid
+        WHERE at.answerid =$1;
+      `;
+  // Execute the query
+      const result = await pool.query(query,[domainID]);
+      const rows = result.rows;
+  
+      // Process the result to group answers by question
+      const questionsMap = {};
+      rows.forEach(row => {
+        const questionId = row.question_id;
+        if (!questionsMap[questionId]) {
+          questionsMap[questionId] = {
+            //id: questionId,
+            question: row.question,
+            answerType: row.answer_type,
+            answers: row.answer_type === 2 ? [] : 'None'
+          };
+        }
+        if (row.answer_type === 2) {
+                questionsMap[questionId].answers.push({
+                    //answer_id: row.answer_id,
+                    answer: row.answer
+                });
+                }
+            });
+  
+      // Convert the map to a list
+      const finalResult = Object.values(questionsMap);
+  
+      // Send the final result as response
+      return finalResult;
+    } catch (error) {
+      console.log(error);
+      return { error: 'Internal server error' };
+    }
+  };
+  
+
+
+module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus,getquestions,getFirstQuestions,gethealthQuestions};

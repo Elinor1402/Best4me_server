@@ -25,14 +25,14 @@ app.use(fileUpload({
 
 
 app.post('/log-in', (req,res)=>{
-    console.log('try login');
-    database.login(req.body.companyID, req.body.companyPassword)
+    const { companyID, companyPassword } = req.body;
+    database.login(companyID, companyPassword)
     .then(message =>{                  
         const payload = { companyID: req.body.companyID};
         // creating access token
         const data = {
             token: "Bearer " + jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET),
-            message: message
+            message: "message"
         }
         res.status(200).send(data);
         
@@ -45,10 +45,9 @@ app.post('/log-in', (req,res)=>{
 
 app.post('/sign-up', (req,res)=>{
     const data = req.body;
-    console.log("The data is",data);
-    database.register(data.email,data.companyPassword,
-        data.compName,data.domain, data.establishment,data.loc_glob,
-        data.location, data.size).then((message) =>{
+   console.log("The data is", data.formData);
+    
+    database.register(data.formData).then((message) =>{
             const data = {
                 message:message.toString()
             }
@@ -186,6 +185,23 @@ app.get('/first-question', async (req, res) => {
         //res.json(result);
     }
 });
+
+// API route to get the Health questions
+app.get('/health-questions', async (req, res) => {
+    const result = await database.gethealthQuestions(req.query.companyID);
+    console.log("The final result is 2",result);
+    if (result.error) {
+        if (result.error === 'Internal server error') {
+            res.status(404).send(result);
+        } else {
+            res.status(500).send(result);
+        }
+    } else {
+        res.status(200).send(result); 
+        //res.json(result);
+    }
+});
+
 
 // API route to get the next question based on the answer
 app.get('/api/next-question/:answerId', async (req, res) => {
