@@ -42,6 +42,24 @@ app.post('/log-in', (req,res)=>{
         res.status(400).send(err.toString());    
     });
 });
+app.post('/user-log-in', (req,res)=>{
+    const {userID, userPassword } = req.body;
+    database.loginUser(userID, userPassword)
+    .then(message =>{                  
+        const payload = { companyID: req.body.companyID};
+        // creating access token
+        const data = {
+           token: "Bearer " + jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET),
+            message:  message.toString()
+        }
+        res.status(200).send(data);
+        
+    })
+    .catch(err =>{
+        //console.log(err.toString());
+        res.status(400).send(err.toString());    
+    });
+});
 
 app.post('/sign-up', (req,res)=>{
     const data = req.body;
@@ -153,24 +171,24 @@ app.put('/updateUserStatus', function (req,res){
     });
 })
 
-app.get('/questions', function(req,res){
-    database.getquestions(req.query.companyID)
-    .then(payload =>{                  
+// app.get('/questions', function(req,res){
+//     database.getquestions(req.query.companyID)
+//     .then(payload =>{                  
             
-        const data = {
-            questions:payload
-        }
-        // console.log(data);
-        res.status(200).send(data); 
+//         const data = {
+//             questions:payload
+//         }
+//         // console.log(data);
+//         res.status(200).send(data); 
         
-    })
-    .catch(err =>{
-        //console.log(err.toString());
-        res.status(400).send(err.toString());    
-    });
-})
+//     })
+//     .catch(err =>{
+//         //console.log(err.toString());
+//         res.status(400).send(err.toString());    
+//     });
+// })
 
-// API route to get the first question
+// API route to get the sign up question
 app.get('/first-question', async (req, res) => {
     const result = await database.getFirstQuestions();
     console.log("The final result is 2",result);
@@ -186,10 +204,11 @@ app.get('/first-question', async (req, res) => {
     }
 });
 
-// API route to get the Health questions
-app.get('/health-questions', async (req, res) => {
-    const result = await database.gethealthQuestions(req.query.companyID);
-    console.log("The final result is 2",result);
+// API route to get the pages of user form
+app.get('/second-questions', async (req, res) => {
+    console.log("The ID of manager",req.query.answerID);
+    const result = await database.getQuestions(req.query.answerID);
+    console.log("The final result is 3",result);
     if (result.error) {
         if (result.error === 'Internal server error') {
             res.status(404).send(result);
@@ -199,6 +218,22 @@ app.get('/health-questions', async (req, res) => {
     } else {
         res.status(200).send(result); 
         //res.json(result);
+    }
+});
+
+app.get('/translate-answers', async (req, res) => {
+    console.log("Answer",req.query.answer);
+    const result = await database.getAnswersID(req.query.answer);
+    console.log("The final result is 2",result);
+    if (result.error) {
+        if (result.error === 'Internal server error') {
+            res.status(404).send(result);
+        } else {
+            res.status(500).send(result);
+        }
+    } else {
+        res.status(200).send(result.toString());  
+       // res.status(200).json(result);
     }
 });
 

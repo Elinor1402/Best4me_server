@@ -7,6 +7,21 @@ const database = require('./database');
 const { password } = require('pg/lib/defaults');
 require('dotenv').config();
 const { parse } = require("csv-parse");
+const { v4: uuidv4 } = require('uuid');
+
+
+function generatePassword() {
+    // Generate a UUID
+    let uuid = uuidv4();
+
+    // Remove dashes
+    uuid = uuid.replace(/-/g, '');
+
+    // Optionally, you can take a substring to control the length
+    const password = uuid.substring(0, 12); // for a 12-character password
+
+    return password;
+}
 
 // This func reads CSV file, and create from each email "username" = email and password.
 // For example: DavidDoe@gmail.com = email, password = DavidDoe
@@ -22,8 +37,8 @@ const readCSV = async function (fileName, companyID){
      
         Object.values(row).forEach((cellData) => {
             if(cellData){
-                var password = cellData.split("@")[0];
-                sendEmail(cellData, password, companyID); // sending email to the employee
+                //var password = cellData.split("@")[0];
+                sendEmail(cellData, companyID); // sending email to the employee
             }
         });
       
@@ -50,9 +65,9 @@ const  readXLSX=  async function (fileName, companyID){
                 if(res[key]!=null)
                 {
                       var email=res[key];
-                      var password = email.split("@")[0];
+                     // var password = email.split("@")[0];
                       //working
-                     sendEmail(email, password, companyID);// sending email to the employee
+                     sendEmail(email,companyID);// sending email to the employee
 
                 }
             })
@@ -66,8 +81,13 @@ const  readXLSX=  async function (fileName, companyID){
 // Email include "USERNAME" (we can change it to EMAIL), password and link to the website
 // The with the username/email and password, the employee needs to login to the website
 
-const  sendEmail= async function (email, password, companyID){
-   await database.saveEmail(email, password, companyID)
+const  sendEmail= async function (email,companyID){
+    // Generate a random password
+   const password = generatePassword();
+
+   var user_id= Math.floor(1+Math.random()*9000);
+
+   await database.saveEmail(email, password, companyID, user_id)
    .then(() =>{
    
     var transporter = nodemailer.createTransport({
@@ -81,8 +101,8 @@ const  sendEmail= async function (email, password, companyID){
         from: 'best4mecomp@gmail.com',
         to: email,
         subject: 'Welcome to Best4me Company',
-        text: `Your username is: ${email} and your password is: ${password}
-             link: http://localhost:3001/Health`
+        text: `Your username is: ${user_id} and your password is: ${password}
+             link: http://localhost:3001/user-log-in`
       };
       transporter.sendMail(mailOptions, function(error, info){
         if (error) {

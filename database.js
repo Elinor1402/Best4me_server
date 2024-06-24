@@ -29,7 +29,7 @@ const login = function(companyID, password){
 
     return new Promise(function(resolve, reject){
     
-        pool.query(`SELECT "company_id", "Password", "Organizations domain" as od FROM "company_info" WHERE "company_id" = $1`, [companyID]).then(user =>{
+        pool.query(`SELECT "company_id", "Password" FROM "company_info" WHERE "company_id" = $1`, [companyID]).then(user =>{
             console.log("User details",user);
             if(user.rowCount==0){ // if the user doesn't exist
                console.log("faild  user");
@@ -52,6 +52,39 @@ const login = function(companyID, password){
         })
     })
 }
+
+const loginUser = function(userID, password){
+
+     return new Promise(function(resolve, reject){
+       // console.log("User id", userID, password);
+
+         pool.query(`SELECT "Organizations domain" as od, ue."password" 
+         FROM "users_email" ue JOIN 
+         "company_info" ci 
+         ON 
+         ue."company_id" = ci."company_id" WHERE ue."user_id" = $1`, [userID]).then(user =>{
+
+             console.log("User details",user.rows[0].password);
+
+             if(user.rowCount==0){ // if the user doesn't exist
+                console.log("faild  user");
+                 //reject(false);
+                 reject(new Error('userID does not exist'));
+             }
+              //if the password is incorrect
+            else if(!compareSync(password, user.rows[0].password)){
+                reject(new Error('wrong password'));
+            }
+            else{ // if the user exists and the password is correct
+                resolve(user.rows[0].od);
+            }
+         }).catch(err =>{
+             console.log(err);
+             console.log("faild");
+             reject(new Error('userID does not valid, use only numbers'));
+         })
+     })
+ }
 
 const register = function(formData){
         return new Promise(function(resolve, reject){
@@ -92,16 +125,16 @@ const register = function(formData){
 
 // This func gets email,password and companyID and saves them in the database.
 // Each email is a employee
-const saveEmail = function(email, password, companyID){
+const saveEmail = function(email, password, companyID, userID){
     return new Promise(function(resolve, reject){
 
-        console.log("save email in db");
+       // console.log("save email in db");
         const date = new Date();
-        
-        var user_id= Math.floor(1+Math.random()*9000);
+        const hashedPassword = bcrypt.hashSync(password, 5);
+        //var user_id= Math.floor(1+Math.random()*9000);
 
         pool.query(`INSERT INTO users_email (user_id, email, password, company_id, isdone, email_date)
-            VALUES(${user_id}, '${email}' , '${password}' , ${companyID} , False , '${date.toLocaleString()}')`).
+            VALUES(${userID}, '${email}' , '${hashedPassword}' , ${companyID} , False , '${date.toLocaleString()}')`).
             then(result => {
                 resolve(1);
             }).catch(e => {
@@ -173,29 +206,29 @@ const updateFillStatus =function(companyID, usersData) {
 }
 
 
-const getquestions= function(companyID)
-{
-    return new Promise(function(resolve, reject){
-        console.log("get questions",companyID);
-        pool.query(`SELECT * FROM questions WHERE company_id=${companyID} OR code=1`)
-        .then(questions =>{
-             console.log("questiond",questions.rows);
-            if(!questions.rows.length)
-            reject(new Error(`Questions not found`));
+// const getquestions= function(companyID)
+// {
+//     return new Promise(function(resolve, reject){
+//         console.log("get questions",companyID);
+//         pool.query(`SELECT * FROM questions WHERE company_id=${companyID} OR code=1`)
+//         .then(questions =>{
+//              console.log("questiond",questions.rows);
+//             if(!questions.rows.length)
+//             reject(new Error(`Questions not found`));
             
-            else
-            {
-               //console.log( "new Date",users.rows[0].email_date);
-                resolve(questions);
+//             else
+//             {
+//                //console.log( "new Date",users.rows[0].email_date);
+//                 resolve(questions);
                 
-            }
+//             }
                
-            }).catch(err =>{
-                console.log(err);
-                reject(err);
-            });
-    });
-}
+//             }).catch(err =>{
+//                 console.log(err);
+//                 reject(err);
+//             });
+//     });
+// }
 
 
 const getFirstQuestions = async function() {
@@ -241,8 +274,8 @@ const getFirstQuestions = async function() {
 }
 
 // Function to get health questions
-const gethealthQuestions = async function(domainID) {
-  // console.log("domain id",domainID);
+const getQuestions = async function(answerID) {
+  console.log("answer id final",answerID);
     try {
       // Query to fetch all required data using joins
       const query = `
@@ -260,7 +293,7 @@ const gethealthQuestions = async function(domainID) {
         WHERE at.answerid =$1;
       `;
   // Execute the query
-      const result = await pool.query(query,[domainID]);
+      const result = await pool.query(query,[answerID]);
       const rows = result.rows;
   
       // Process the result to group answers by question
@@ -294,6 +327,24 @@ const gethealthQuestions = async function(domainID) {
     }
   };
   
+  const getAnswersID = async function(answer) {
+    try {
+        const query = 'SELECT id FROM answers WHERE answer = $1';
+        const values = [answer];
 
+        const res = await pool.query(query, values);
 
-module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus,getquestions,getFirstQuestions,gethealthQuestions};
+        if (res.rows.length > 0) {
+            return res.rows[0].id;
+        } else {
+            throw new Error('Answer not found');
+        }
+        } catch (error) {
+        console.error('Error querying the database:', error);
+        throw error;
+        }
+   
+    };
+  
+
+module.exports = {register, login, findUser,saveEmail,getusers,updateFillStatus,getFirstQuestions, getQuestions,loginUser,getAnswersID};
