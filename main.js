@@ -117,6 +117,7 @@ app.post("/uploadfile", authenticate, async (req, res) => {
 // verify access token
 function authenticate(req, res, next) {
   const token = req.headers.authorization.split(" ")[1];
+  console.log("Token", token);
   if (!token) {
     return res.status(401).json({ error: true, message: "Must pass token" });
   }
@@ -219,8 +220,8 @@ app.get("/first-question", async (req, res) => {
 
 // API route to get the pages of user form
 app.get("/second-questions", async (req, res) => {
-  console.log("The ID of manager", req.query.answerID);
-  const result = await database.getQuestions(req.query.answerID);
+  const { answerID, userID } = req.query;
+  const result = await database.getQuestions(answerID, userID);
   console.log("The final result is 3", result);
   if (result.error) {
     if (result.error === "Internal server error") {
@@ -234,6 +235,20 @@ app.get("/second-questions", async (req, res) => {
   }
 });
 
+app.get("/users-answers", async (req, res) => {
+  const result = await database.getUserAnswers(req.query.userID);
+  console.log("The final result is 4", result);
+  if (result.error) {
+    if (result.error === "Internal server error") {
+      res.status(404).send(result);
+    } else {
+      res.status(500).send(result);
+    }
+  } else {
+    res.status(200).send(result);
+    //res.json(result);
+  }
+});
 app.get("/translate-answers", async (req, res) => {
   console.log("Answer", req.query.answer);
   const result = await database.getAnswersID(req.query.answer);
@@ -283,6 +298,23 @@ app.get("/api/next-question/:answerId", async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+app.post("/save-answers", (req, res) => {
+  const { formData, userID } = req.body;
+  database
+    .saveAnswers(formData, userID)
+    .then((message) => {
+      // creating access token
+      const data = {
+        message: "message",
+      };
+      res.status(200).send(data);
+    })
+    .catch((err) => {
+      //console.log(err.toString());
+      res.status(400).send(err.toString());
+    });
 });
 
 const port = 3000;
