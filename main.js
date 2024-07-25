@@ -31,7 +31,7 @@ app.post("/log-in", (req, res) => {
   database
     .login(companyID, companyPassword)
     .then((message) => {
-      const payload = { companyID: req.body.companyID };
+      const payload = { companyID: companyID };
       // creating access token
       const data = {
         token: "Bearer " + jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET),
@@ -80,7 +80,7 @@ app.post("/sign-up", (req, res) => {
     });
 });
 
-app.post("/uploadfile", authenticate, async (req, res) => {
+app.post("/uploadfile", authenticate, authorize("admin"), async (req, res) => {
   console.log("got here");
 
   let file = req.files.file;
@@ -141,26 +141,54 @@ function authenticate(req, res, next) {
   })(req, res, next);
 }
 
-app.get("/admin", authenticate, function (req, res, next) {
-  // const token = req.headers.authorization.split(" ")[1];
-  // if (!token) {
-  //   return res.status(401).json({ error: true, message: "Must pass token" });
-  // }
+function authorize(...allowedRoles) {
+  return (req, res, next) => {
+    // `user` should be attached to `req` by the `passport.authenticate` middleware
+    if (!req.user) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    // Check if the user's role is allowed
+    const userRole = req.user.role; // Assume user object has a 'role' field
+    if (!allowedRoles.includes(userRole)) {
+      return res
+        .status(403)
+        .json({ message: "Forbidden: Insufficient rights" });
+    }
+
+    next(); // User is authorized, proceed to the next middleware or route handler
+  };
+}
+
+app.get(
+  "/admin",
+  authenticate,
+  authorize("admin"),
+  function (req, res, next) {}
+);
+
+app.get("/files", authenticate, authorize("admin"), function (req, res, next) {
+  console.log("Go to files");
 });
 
-app.get("/csvData", authenticate, async function (req, res, next) {
-  const csvUrl =
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRi5yiyL7OjyVehkofqLeKfN2XhY8KbTxaSsQ7_HVSLHeM6uUh7oHMPjmaMD62QrdsC8bGCip3tV9YD/pub?output=csv"; // Replace with your Google Sheets CSV file URL
+app.get(
+  "/csvData",
+  authenticate,
+  authorize("admin"),
+  async function (req, res, next) {
+    const csvUrl =
+      "https://docs.google.com/spreadsheets/d/e/2PACX-1vRi5yiyL7OjyVehkofqLeKfN2XhY8KbTxaSsQ7_HVSLHeM6uUh7oHMPjmaMD62QrdsC8bGCip3tV9YD/pub?output=csv"; // Replace with your Google Sheets CSV file URL
 
-  try {
-    const response = await axios.get(csvUrl);
-    res.status(200).send(response.data);
-  } catch (error) {
-    console.error("Error fetching CSV data:", error);
+    try {
+      const response = await axios.get(csvUrl);
+      res.status(200).send(response.data);
+    } catch (error) {
+      console.error("Error fetching CSV data:", error);
+    }
   }
-});
+);
 
-app.get("/users", authenticate, function (req, res) {
+app.get("/users", authenticate, authorize("admin"), function (req, res) {
   database
     .getusers(req.query.companyID)
     .then((payload) => {
@@ -224,23 +252,28 @@ app.get("/first-question", async (req, res) => {
 });
 
 // API route to get the pages of user form
-app.get("/second-questions", authenticate, async (req, res, next) => {
-  const { answerID, userID } = req.query;
-  const result = await database.getQuestions(answerID, userID);
-  console.log("The final result is 3", result);
-  if (result.error) {
-    if (result.error === "Internal server error") {
-      res.status(404).send(result);
+app.get(
+  "/second-questions",
+  authenticate,
+  authorize("user"),
+  async (req, res, next) => {
+    const { answerID, userID } = req.query;
+    const result = await database.getQuestions(answerID, userID);
+    console.log("The final result is 3", result);
+    if (result.error) {
+      if (result.error === "Internal server error") {
+        res.status(404).send(result);
+      } else {
+        res.status(500).send(result);
+      }
     } else {
-      res.status(500).send(result);
+      res.status(200).send(result);
+      //res.json(result);
     }
-  } else {
-    res.status(200).send(result);
-    //res.json(result);
   }
-});
+);
 
-app.get("/users-answers", authenticate, async (req, res) => {
+app.get("/users-answers", authenticate, authorize("user"), async (req, res) => {
   const result = await database.getUserAnswers(req.query.userID);
   console.log("The final result is 4", result);
   if (result.error) {
@@ -254,58 +287,68 @@ app.get("/users-answers", authenticate, async (req, res) => {
     //res.json(result);
   }
 });
-app.get("/translate-answers", authenticate, async (req, res) => {
-  console.log("Answer", req.query.answer);
-  const result = await database.getAnswersID(req.query.answer);
-  console.log("The final result is 2", result);
-  if (result.error) {
-    if (result.error === "Internal server error") {
-      res.status(404).send(result);
-    } else {
-      res.status(500).send(result);
-    }
-  } else {
-    res.status(200).send(result.toString());
-    // res.status(200).json(result);
-  }
-});
-
-// API route to get the next question based on the answer
-app.get("/api/next-question/:answerId", authenticate, async (req, res) => {
-  const answerId = req.params.answerId;
-  try {
-    const atoqResult = await pool.query(
-      "SELECT next_question_id FROM atoq WHERE answer_id = $1",
-      [answerId]
-    );
-    const atoq = atoqResult.rows[0];
-
-    if (atoq) {
-      const nextQuestionResult = await pool.query(
-        "SELECT * FROM questions WHERE id = $1",
-        [atoq.next_question_id]
-      );
-      const nextQuestion = nextQuestionResult.rows[0];
-
-      if (nextQuestion) {
-        const answersResult = await pool.query(
-          "SELECT * FROM answers WHERE question_id = $1",
-          [nextQuestion.id]
-        );
-        nextQuestion.answers = answersResult.rows;
-        res.json(nextQuestion);
+app.get(
+  "/translate-answers",
+  authenticate,
+  authorize("user"),
+  async (req, res) => {
+    console.log("Answer", req.query.answer);
+    const result = await database.getAnswersID(req.query.answer);
+    console.log("The final result is 2", result);
+    if (result.error) {
+      if (result.error === "Internal server error") {
+        res.status(404).send(result);
       } else {
-        res.status(404).json({ error: "Next question not found" });
+        res.status(500).send(result);
       }
     } else {
-      res.status(404).json({ error: "No mapping found for this answer" });
+      res.status(200).send(result.toString());
+      // res.status(200).json(result);
     }
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
   }
-});
+);
 
-app.post("/save-answers", authenticate, (req, res) => {
+// API route to get the next question based on the answer
+app.get(
+  "/api/next-question/:answerId",
+  authenticate,
+  authorize("user"),
+  async (req, res) => {
+    const answerId = req.params.answerId;
+    try {
+      const atoqResult = await pool.query(
+        "SELECT next_question_id FROM atoq WHERE answer_id = $1",
+        [answerId]
+      );
+      const atoq = atoqResult.rows[0];
+
+      if (atoq) {
+        const nextQuestionResult = await pool.query(
+          "SELECT * FROM questions WHERE id = $1",
+          [atoq.next_question_id]
+        );
+        const nextQuestion = nextQuestionResult.rows[0];
+
+        if (nextQuestion) {
+          const answersResult = await pool.query(
+            "SELECT * FROM answers WHERE question_id = $1",
+            [nextQuestion.id]
+          );
+          nextQuestion.answers = answersResult.rows;
+          res.json(nextQuestion);
+        } else {
+          res.status(404).json({ error: "Next question not found" });
+        }
+      } else {
+        res.status(404).json({ error: "No mapping found for this answer" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+app.post("/save-answers", authenticate, authorize("user"), (req, res) => {
   const { formData, userID } = req.body;
   database
     .saveAnswers(formData, userID)
