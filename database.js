@@ -59,15 +59,20 @@ const login = function (companyID, password) {
 
 const loginUser = function (userID, password) {
   return new Promise(function (resolve, reject) {
-    // console.log("User id", userID, password);
+    console.log("User id and password", userID, password);
 
     pool
       .query(
-        `SELECT "Organizations domain" as od, ue."password" 
+        `SELECT "Organizations domain" as od, ue."password",
+        a.id AS answerid 
          FROM "users_email" ue JOIN 
          "company_info" ci 
          ON 
-         ue."company_id" = ci."company_id" WHERE ue."user_id" = $1`,
+         ue."company_id" = ci."company_id" JOIN 
+         "answers" a 
+       ON 
+         ci."Organizations domain" = a."answer" 
+         WHERE ue."user_id" = $1`,
         [userID]
       )
       .then((user) => {
@@ -84,7 +89,8 @@ const loginUser = function (userID, password) {
           reject(new Error("wrong password"));
         } else {
           // if the user exists and the password is correct
-          resolve(user.rows[0].od);
+          console.log("Result", user.rows[0]);
+          resolve({ od: user.rows[0].od, answerID: user.rows[0].answerid });
         }
       })
       .catch((err) => {
@@ -201,16 +207,33 @@ const saveAnswers = async function (formData, userID) {
   }
 };
 
-const findUser = function (companyID) {
+const findAdmin = function (companyID) {
   return new Promise(function (resolve, reject) {
     pool
       .query(
-        `SELECT company_id, password FROM users_info WHERE company_id= ${companyID}`
+        `SELECT "company_id", "Password" FROM company_info WHERE company_id= ${companyID}`
       )
       .then((user) => {
         resolve(user);
       })
       .catch((err) => {
+        reject(err);
+      });
+  });
+};
+
+const findUser = function (userID) {
+  console.log("User id", userID);
+  return new Promise(function (resolve, reject) {
+    pool
+      .query(
+        `SELECT "user_id", "password" FROM users_email WHERE user_id= ${userID}`
+      )
+      .then((user) => {
+        resolve(user);
+      })
+      .catch((err) => {
+        console.log("Error here");
         reject(err);
       });
   });
@@ -456,6 +479,7 @@ const getAnswersID = async function (answer) {
 module.exports = {
   register,
   login,
+  findAdmin,
   findUser,
   saveEmail,
   saveAnswers,

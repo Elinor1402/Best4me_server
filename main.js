@@ -49,11 +49,11 @@ app.post("/user-log-in", (req, res) => {
   database
     .loginUser(userID, userPassword)
     .then((message) => {
-      const payload = { companyID: req.body.companyID };
+      const payload = { userID: userID };
       // creating access token
       const data = {
         token: "Bearer " + jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET),
-        message: message.toString(),
+        message: message,
       };
       res.status(200).send(data);
     })
@@ -116,6 +116,10 @@ app.post("/uploadfile", authenticate, async (req, res) => {
 
 // verify access token
 function authenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ error: true, message: "Must pass token" });
+  }
   const token = req.headers.authorization.split(" ")[1];
   console.log("Token", token);
   if (!token) {
@@ -124,6 +128,7 @@ function authenticate(req, res, next) {
 
   passport.authenticate("jwt", { session: false }, function (err, user, info) {
     if (err) {
+      console.log("Next error");
       return next(err);
     }
     if (!user) {
@@ -219,7 +224,7 @@ app.get("/first-question", async (req, res) => {
 });
 
 // API route to get the pages of user form
-app.get("/second-questions", async (req, res) => {
+app.get("/second-questions", authenticate, async (req, res, next) => {
   const { answerID, userID } = req.query;
   const result = await database.getQuestions(answerID, userID);
   console.log("The final result is 3", result);
@@ -235,7 +240,7 @@ app.get("/second-questions", async (req, res) => {
   }
 });
 
-app.get("/users-answers", async (req, res) => {
+app.get("/users-answers", authenticate, async (req, res) => {
   const result = await database.getUserAnswers(req.query.userID);
   console.log("The final result is 4", result);
   if (result.error) {
@@ -249,7 +254,7 @@ app.get("/users-answers", async (req, res) => {
     //res.json(result);
   }
 });
-app.get("/translate-answers", async (req, res) => {
+app.get("/translate-answers", authenticate, async (req, res) => {
   console.log("Answer", req.query.answer);
   const result = await database.getAnswersID(req.query.answer);
   console.log("The final result is 2", result);
@@ -266,7 +271,7 @@ app.get("/translate-answers", async (req, res) => {
 });
 
 // API route to get the next question based on the answer
-app.get("/api/next-question/:answerId", async (req, res) => {
+app.get("/api/next-question/:answerId", authenticate, async (req, res) => {
   const answerId = req.params.answerId;
   try {
     const atoqResult = await pool.query(
@@ -300,7 +305,7 @@ app.get("/api/next-question/:answerId", async (req, res) => {
   }
 });
 
-app.post("/save-answers", (req, res) => {
+app.post("/save-answers", authenticate, (req, res) => {
   const { formData, userID } = req.body;
   database
     .saveAnswers(formData, userID)
