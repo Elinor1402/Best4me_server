@@ -25,94 +25,115 @@ function generatePassword() {
 // This func reads CSV file, and create from each email "username" = email and password.
 // For example: DavidDoe@gmail.com = email, password = DavidDoe
 const readCSV = async function (fileName, companyID) {
-  fs.createReadStream("uploads/" + fileName)
-    .pipe(
-      parse({
-        delimiter: ",",
+  try {
+    fs.createReadStream("uploads/" + fileName)
+      .pipe(
+        parse({
+          delimiter: ",",
+        })
+      )
+      .on("error", (error) => {
+        console.error("Error reading CSV file:", error);
       })
-    )
-    .on("error", (error) => {
-      console.error("Error reading CSV file:", error);
-    })
-    .on("data", (row) => {
-      Object.values(row).forEach((cellData) => {
-        if (cellData) {
-          //var password = cellData.split("@")[0];
-          sendEmail(cellData, companyID); // sending email to the employee
-        }
+      .on("data", (row) => {
+        Object.values(row).forEach((cellData) => {
+          if (cellData) {
+            try {
+              sendEmail(cellData, companyID); // sending email to the employee
+            } catch (emailError) {
+              console.log("Failed to send email in readCSV");
+              throw emailError;
+            }
+          }
+        });
+      })
+      .on("end", () => {
+        console.log("CSV file successfully processed");
       });
-    })
-    .on("end", () => {
-      console.log("CSV file successfully processed");
-    });
+  } catch (error) {
+    throw new Error(error);
+  }
 };
 
-// This func reads XL file, and create from each email "username" = email and password.
 const readXLSX = async function (fileName, companyID) {
-  var file = reader.readFile("uploads/" + fileName);
-  const sheets = file.SheetNames;
-  let data = [];
+  console.log("Go here");
+  try {
+    const file = reader.readFile("uploads/" + fileName);
+    const sheets = file.SheetNames;
+    let data = [];
 
-  for (let i = 0; i < sheets.length; i++) {
-    const temp = reader.utils.sheet_to_json(file.Sheets[sheets[i]], {
-      header: 1,
-      raw: true,
-      defval: null,
-    });
-    temp.forEach((res) => {
-      data.push(res);
-      Object.keys(res).forEach((key) => {
-        if (res[key] != null) {
-          var email = res[key];
-          // var password = email.split("@")[0];
-          //working
-          sendEmail(email, companyID); // sending email to the employee
-        }
+    for (let i = 0; i < sheets.length; i++) {
+      const temp = reader.utils.sheet_to_json(file.Sheets[sheets[i]], {
+        header: 1,
+        raw: true,
+        defval: null,
       });
-    });
-  }
 
-  console.log(data);
+      for (let res of temp) {
+        data.push(res);
+
+        for (let key of Object.keys(res)) {
+          if (res[key] !== null) {
+            try {
+              const email = res[key];
+              await sendEmail(email, companyID); // Sending email to the employee
+            } catch (emailError) {
+              console.log("Failed to send email in readXLSX");
+              throw emailError;
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    throw new Error(error); // Re-throw if you want the caller to handle it
+  }
 };
 
 // Sending email to every employee.
 // Email include "USERNAME" (we can change it to EMAIL), password and link to the website
-// The with the username/email and password, the employee needs to login to the website
+// The with the username and password, the employee needs to login to the website
 
 const sendEmail = async function (email, companyID) {
-  // Generate a random password
-  const password = generatePassword();
+  try {
+    // Regular expression for validating an email address
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      throw new Error(
+        "Recipient email is not defined or is not in a valid format"
+      );
+    }
+    // Generate a random password
+    const password = generatePassword();
+    var user_id = Math.floor(1 + Math.random() * 9000);
 
-  var user_id = Math.floor(1 + Math.random() * 9000);
+    await database
+      .saveEmail(email, password, companyID, user_id)
+      .then((userID) => {
+        var transporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: "best4mecomp@gmail.com",
+            pass: "pdhmsyzlivvdzplw",
+          },
+        });
 
-  await database
-    .saveEmail(email, password, companyID, user_id)
-    .then((userID) => {
-      var transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: "best4mecomp@gmail.com",
-          pass: "pdhmsyzlivvdzplw",
-        },
+        var mailOptions = {
+          from: "best4mecomp@gmail.com",
+          to: email,
+          subject: "Welcome to Best4me Company",
+          text: `Your username is: ${userID} and your password is: ${password}
+                link: http://localhost:3001/user-log-in`,
+        };
+
+        transporter.sendMail(mailOptions, function (error, info) {});
+      })
+      .catch((err) => {
+        throw new Error("Failed to send email");
       });
-      var mailOptions = {
-        from: "best4mecomp@gmail.com",
-        to: email,
-        subject: "Welcome to Best4me Company",
-        text: `Your username is: ${userID} and your password is: ${password}
-             link: http://localhost:3001/user-log-in`,
-      };
-      transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-          console.log(error);
-        } else {
-          console.log("Email sent: " + info.response);
-        }
-      });
-    })
-    .catch((err) => {
-      console.log(err);
-    });
+  } catch (error) {
+    throw error;
+  }
 };
 
 module.exports = { readCSV, readXLSX, sendEmail };

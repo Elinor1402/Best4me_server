@@ -10,7 +10,6 @@ const pool = new Pool({
   //host: '192.114.5.161',
   host: "localhost",
   database: "fs-info-db",
-  //password: '123',
   password: "Elinorz2000",
   port: 5432,
   max: 40, // Max 20 connection
@@ -21,11 +20,8 @@ const pool = new Pool({
 //my change
 pool.connect();
 
-// Define the updateStatus function
-
+//login of admin.
 const login = function (companyID, password) {
-  //console.log("try connect",companyID,password);
-
   return new Promise(function (resolve, reject) {
     pool
       .query(
@@ -33,30 +29,25 @@ const login = function (companyID, password) {
         [companyID]
       )
       .then((user) => {
-        console.log("User details", user);
         if (user.rowCount == 0) {
-          // if the user doesn't exist
-          console.log("faild  user");
-          //reject(false);
-          reject(new Error("companyID does not exist"));
+          reject(new Error("admin does not exist"));
         }
         //if the password is incorrect
         else if (!compareSync(password, user.rows[0].Password)) {
           reject(new Error("wrong password"));
         } else {
           // if the user exists and the password is correct
-          //resolve(1);
           resolve(user.rows.od);
         }
       })
       .catch((err) => {
         console.log(err);
-        console.log("faild");
-        reject(new Error("companyID does not valid, use only numbers"));
+        reject(new Error("company id invalid, use only numbers"));
       });
   });
 };
 
+//login of user.
 const loginUser = function (userID, password) {
   return new Promise(function (resolve, reject) {
     console.log("User id and password", userID, password);
@@ -82,7 +73,7 @@ const loginUser = function (userID, password) {
           // if the user doesn't exist
           console.log("faild  user");
           //reject(false);
-          reject(new Error("userID does not exist"));
+          reject(new Error("user does not exist"));
         }
         //if the password is incorrect
         else if (!compareSync(password, user.rows[0].password)) {
@@ -100,12 +91,12 @@ const loginUser = function (userID, password) {
       });
   });
 };
-
+//sign up of admin.
 const register = function (formData) {
   return new Promise(function (resolve, reject) {
     var companyID = Math.floor(1 + Math.random() * 9000);
     pool
-      .query(`INSERT INTO company_info (company_id) VALUES(${companyID})`)
+      .query(`INSERT INTO company_info (company_id) VALUES ($1)`, [companyID])
       .then(() => {
         if (typeof formData === "object" && formData !== null) {
           if (formData.Password) {
@@ -136,7 +127,7 @@ const register = function (formData) {
     resolve(message);
   });
 };
-
+//delete client amswers by his ID
 const deleteUsersAnswers = async function (userID) {
   const deleteQuery = "DELETE FROM users_answers WHERE user_id = $1;";
   try {
@@ -147,35 +138,41 @@ const deleteUsersAnswers = async function (userID) {
     throw error;
   }
 };
-// This func gets email,password and companyID and saves them in the database.
+// This func gets email,password,userID and companyID and saves them in the database.
 // Each email is a employee
 const saveEmail = function (email, password, companyID, userID) {
   return new Promise(function (resolve, reject) {
-    // console.log("save email in db");
     const date = new Date();
     const hashedPassword = bcrypt.hashSync(password, 5);
-    //var user_id= Math.floor(1+Math.random()*9000);
-    // Check if the record exists
     pool
       .query(
-        `SELECT user_id FROM users_email WHERE email = '${email}' AND company_id = ${companyID}`
+        `SELECT user_id FROM users_email WHERE email = $1 AND company_id = $2`,
+        [email, companyID]
       )
       .then((result) => {
         if (result.rows.length > 0) {
           deleteUsersAnswers(result.rows[0].user_id);
-          //console.log("Select ", result.rows[0].user_id);
           resolve(result.rows[0].user_id);
           console.log("After resolve");
           return pool.query(
             `UPDATE users_email 
-             SET password = '${hashedPassword}'
-             WHERE email = '${email}' AND company_id = ${companyID}`
+             SET password = $1, email_date = $2
+             WHERE email = $3 AND company_id = $4`,
+            [hashedPassword, date.toLocaleString(), email, companyID]
           );
         } else {
           resolve(userID);
           return pool.query(
             `INSERT INTO users_email (user_id, email, password, company_id, isdone, email_date)
-             VALUES (${userID}, '${email}', '${hashedPassword}', ${companyID}, False, '${date.toLocaleString()}')`
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              userID,
+              email,
+              hashedPassword,
+              companyID,
+              false,
+              date.toLocaleString(),
+            ]
           );
         }
       })
@@ -184,7 +181,7 @@ const saveEmail = function (email, password, companyID, userID) {
       });
   });
 };
-
+//save the form answers of the client.
 const saveAnswers = async function (formData, userID) {
   try {
     // Convert formData into a JSONB object
@@ -196,10 +193,8 @@ const saveAnswers = async function (formData, userID) {
       VALUES ($1, $2::jsonb)
       ON CONFLICT (user_id) DO UPDATE SET answers = users_answers.answers || EXCLUDED.answers;
     `;
-
     // Execute the query
     await pool.query(insertQuery, [userID, answersJson]);
-
     console.log("Answers saved successfully.");
   } catch (error) {
     console.error("Error querying the database:", error);
@@ -207,11 +202,13 @@ const saveAnswers = async function (formData, userID) {
   }
 };
 
+//use this in passport.js for authentication and authorization.
 const findAdmin = function (companyID) {
   return new Promise(function (resolve, reject) {
     pool
       .query(
-        `SELECT "company_id", "Password" FROM company_info WHERE company_id= ${companyID}`
+        `SELECT "company_id", "Password" FROM company_info WHERE company_id = $1`,
+        [companyID]
       )
       .then((user) => {
         resolve(user);
@@ -221,13 +218,13 @@ const findAdmin = function (companyID) {
       });
   });
 };
-
+//use this in passport.js for authentication and authorization.
 const findUser = function (userID) {
-  console.log("User id", userID);
   return new Promise(function (resolve, reject) {
     pool
       .query(
-        `SELECT "user_id", "password" FROM users_email WHERE user_id= ${userID}`
+        `SELECT "user_id", "password" FROM users_email WHERE user_id = $1`,
+        [userID]
       )
       .then((user) => {
         resolve(user);
@@ -238,18 +235,15 @@ const findUser = function (userID) {
       });
   });
 };
-
+//get all clients that got an email from the admin.
 const getusers = function (companyID) {
   return new Promise(function (resolve, reject) {
-    console.log("get users", companyID);
     pool
-      .query(`SELECT * FROM users_email WHERE company_id= ${companyID}`)
+      .query(`SELECT * FROM users_email WHERE company_id = $1`, [companyID])
       .then((users) => {
-        // console.log("users",users);
-        //need to check
-        if (!users.rows.length) reject(new Error(`Users not found`));
+        if (!users.rows.length)
+          reject(new Error(`Users not found, emails were not sent`));
         else {
-          //console.log( "new Date",users.rows[0].email_date);
           resolve(users);
         }
       })
@@ -259,19 +253,18 @@ const getusers = function (companyID) {
       });
   });
 };
-
+//update client status that he filled the form and submit it.
 const updateFillStatus = function (companyID, usersData) {
   return new Promise(function (resolve, reject) {
     usersData.slice(1).map((row) => {
       const email = row[row.length - 1].trim(); // Extract email address
-      console.log("The email is", email);
       if (email) {
         pool
           .query(
-            `UPDATE users_email SET isdone=${true} WHERE company_id=${companyID} AND email='${email}'`
+            `UPDATE users_email SET isdone = $1 WHERE company_id = $2 AND email = $3`,
+            [true, companyID, email]
           )
           .then((result) => {
-            // console.log("Result is", result);
             resolve(1);
           })
           .catch((e) => {
@@ -283,30 +276,6 @@ const updateFillStatus = function (companyID, usersData) {
   });
 };
 
-// const getquestions= function(companyID)
-// {
-//     return new Promise(function(resolve, reject){
-//         console.log("get questions",companyID);
-//         pool.query(`SELECT * FROM questions WHERE company_id=${companyID} OR code=1`)
-//         .then(questions =>{
-//              console.log("questiond",questions.rows);
-//             if(!questions.rows.length)
-//             reject(new Error(`Questions not found`));
-
-//             else
-//             {
-//                //console.log( "new Date",users.rows[0].email_date);
-//                 resolve(questions);
-
-//             }
-
-//             }).catch(err =>{
-//                 console.log(err);
-//                 reject(err);
-//             });
-//     });
-// }
-
 const getFirstQuestions = async function () {
   try {
     // Select all questions with page = 1
@@ -315,16 +284,13 @@ const getFirstQuestions = async function () {
       [1]
     );
     const questions = questionsResult.rows;
-
     // Fetch answers for each question using qtoa table
     for (let question of questions) {
       const qtoaResult = await pool.query(
         "SELECT answerid FROM qtoa WHERE questionid = $1",
         [question.id]
       );
-
       const answerIds = qtoaResult.rows.map((row) => row.answerid);
-      console.log("Answers id", answerIds);
 
       if (answerIds.length > 0) {
         console.log("Got here");
@@ -341,7 +307,6 @@ const getFirstQuestions = async function () {
         "SELECT answer_type FROM q_appearance WHERE questionid = $1",
         [question.id]
       );
-
       // Assign answer_type to question
       if (answerTypeResult.rows.length > 0) {
         // Assuming there is only one answer type associated with each question
@@ -351,8 +316,6 @@ const getFirstQuestions = async function () {
         question.answerType = null; // Or set a default value as needed
       }
     }
-
-    console.log("questions", questions);
     return questions;
   } catch (error) {
     console.log(error);
@@ -360,9 +323,8 @@ const getFirstQuestions = async function () {
   }
 };
 
-// Function to get health questions
+// Function to get questions for clients by company domain to show that in form
 const getQuestions = async function (answerID, userID) {
-  console.log("answer id final", answerID);
   try {
     // Query to fetch all required data using joins
     const query = `
@@ -402,7 +364,6 @@ const getQuestions = async function (answerID, userID) {
         });
       }
     });
-
     // Build the JSONB object for answers
     const answersJson = {};
     for (const [questionId, questionData] of Object.entries(questionsMap)) {
@@ -414,12 +375,10 @@ const getQuestions = async function (answerID, userID) {
       } else {
         continue; // Skip if there are no relevant answers to insert
       }
-
       answersJson[questionData.question] = answer;
     }
     const query2 = "SELECT user_id FROM users_answers WHERE user_id = $1";
     const values = [userID];
-
     const res = await pool.query(query2, values);
 
     if (res.rows.length <= 0) {
@@ -442,7 +401,7 @@ const getQuestions = async function (answerID, userID) {
   }
 };
 
-// Function to get health questions
+// Function to get client answers in the form
 const getUserAnswers = async function (userID) {
   const query = "SELECT answers FROM users_answers WHERE user_id = $1;";
 
@@ -458,6 +417,7 @@ const getUserAnswers = async function (userID) {
     throw err;
   }
 };
+//Get the id of answer
 const getAnswersID = async function (answer) {
   try {
     const query = "SELECT id FROM answers WHERE answer = $1";

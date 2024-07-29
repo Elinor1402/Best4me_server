@@ -2,7 +2,6 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
 const jwt = require("jsonwebtoken");
-const router = express.Router();
 const database = require("./database");
 const emails = require("./emails");
 const cors = require("cors");
@@ -26,6 +25,7 @@ app.use(
   })
 );
 
+//admin login
 app.post("/log-in", (req, res) => {
   const { companyID, companyPassword } = req.body;
   database
@@ -35,7 +35,6 @@ app.post("/log-in", (req, res) => {
       // creating access token
       const data = {
         token: "Bearer " + jwt.sign(payload, process.env.ACCESS_TOKEN_SECRET),
-        message: "message",
       };
       res.status(200).send(data);
     })
@@ -44,6 +43,7 @@ app.post("/log-in", (req, res) => {
       res.status(400).send(err.toString());
     });
 });
+//client login
 app.post("/user-log-in", (req, res) => {
   const { userID, userPassword } = req.body;
   database
@@ -62,11 +62,9 @@ app.post("/user-log-in", (req, res) => {
       res.status(400).send(err.toString());
     });
 });
-
+//admin sign up
 app.post("/sign-up", (req, res) => {
   const data = req.body;
-  console.log("The data is", data.formData);
-
   database
     .register(data.formData)
     .then((message) => {
@@ -79,28 +77,34 @@ app.post("/sign-up", (req, res) => {
       res.status(400).send(err.toString());
     });
 });
-
+//to use the uploaded file for sending emails for clients
 app.post("/uploadfile", authenticate, authorize("admin"), async (req, res) => {
-  console.log("got here");
-
   let file = req.files.file;
-
   let companyID = req.body.CompanyID;
 
   fileExtension = path.extname(file.name);
   await file.mv("./uploads/" + file.name);
   // Checking if the file ends with .xls
   if (fileExtension == ".xls" || fileExtension == ".xlsx") {
-    emails.readXLSX(file.name, companyID).then(() => {
-      res.status(200).send("emails were sent");
-    });
+    emails
+      .readXLSX(file.name, companyID)
+      .then(() => {
+        res.status(200).send("emails were sent");
+      })
+      .catch((err) => {
+        console.log("final err here", err.toString());
+        res.status(400).send(err.message);
+      });
   } else if (fileExtension == ".csv") {
     // Checking if the file ends with .csv
-    console.log("csv" + file.name);
-    //emails.readCSV(file.name,companyID)
-    emails.readCSV(file.name, companyID).then(() => {
-      res.status(200).send("emails were sent");
-    });
+    emails
+      .readCSV(file.name, companyID)
+      .then(() => {
+        res.status(200).send("emails were sent");
+      })
+      .catch((err) => {
+        res.status(400).send(err.message);
+      });
   } else {
     res.status(500).send("Wrong type file");
   }
@@ -114,7 +118,7 @@ app.post("/uploadfile", authenticate, authorize("admin"), async (req, res) => {
   });
 });
 
-// verify access token
+// verify access token, check if user exist
 function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -140,14 +144,13 @@ function authenticate(req, res, next) {
     next();
   })(req, res, next);
 }
-
+//verify user permissions
 function authorize(...allowedRoles) {
   return (req, res, next) => {
     // `user` should be attached to `req` by the `passport.authenticate` middleware
     if (!req.user) {
       return res.status(403).json({ message: "Forbidden" });
     }
-
     // Check if the user's role is allowed
     const userRole = req.user.role; // Assume user object has a 'role' field
     if (!allowedRoles.includes(userRole)) {
@@ -155,18 +158,18 @@ function authorize(...allowedRoles) {
         .status(403)
         .json({ message: "Forbidden: Insufficient rights" });
     }
-
     next(); // User is authorized, proceed to the next middleware or route handler
   };
 }
 
+//for safe access of pages
 app.get(
   "/admin",
   authenticate,
   authorize("admin"),
   function (req, res, next) {}
 );
-
+//for safe access of pages
 app.get("/files", authenticate, authorize("admin"), function (req, res, next) {
   console.log("Go to files");
 });
@@ -187,7 +190,7 @@ app.get(
     }
   }
 );
-
+//get the users recieved an email
 app.get("/users", authenticate, authorize("admin"), function (req, res) {
   database
     .getusers(req.query.companyID)
@@ -195,15 +198,13 @@ app.get("/users", authenticate, authorize("admin"), function (req, res) {
       const data = {
         users: payload,
       };
-      // console.log(data);
       res.status(200).send(data);
     })
     .catch((err) => {
-      //console.log(err.toString());
-      res.status(400).send(err.toString());
+      res.status(400).send(err.message);
     });
 });
-
+//update the status of users that filled the form and submitted it
 app.put("/updateUserStatus", function (req, res) {
   const data = req.body;
   console.log("Csv data", data);
@@ -213,27 +214,9 @@ app.put("/updateUserStatus", function (req, res) {
       res.status(200).send();
     })
     .catch((err) => {
-      //console.log(err.toString());
       res.status(400).send(err.toString());
     });
 });
-
-// app.get('/questions', function(req,res){
-//     database.getquestions(req.query.companyID)
-//     .then(payload =>{
-
-//         const data = {
-//             questions:payload
-//         }
-//         // console.log(data);
-//         res.status(200).send(data);
-
-//     })
-//     .catch(err =>{
-//         //console.log(err.toString());
-//         res.status(400).send(err.toString());
-//     });
-// })
 
 // API route to get the sign up question
 app.get("/first-question", async (req, res) => {
@@ -247,11 +230,10 @@ app.get("/first-question", async (req, res) => {
     }
   } else {
     res.status(200).send(result);
-    //res.json(result);
   }
 });
 
-// API route to get the pages of user form
+// API route to get the pages of user form, used in general form
 app.get(
   "/second-questions",
   authenticate,
@@ -268,14 +250,12 @@ app.get(
       }
     } else {
       res.status(200).send(result);
-      //res.json(result);
     }
   }
 );
 
 app.get("/users-answers", authenticate, authorize("user"), async (req, res) => {
   const result = await database.getUserAnswers(req.query.userID);
-  console.log("The final result is 4", result);
   if (result.error) {
     if (result.error === "Internal server error") {
       res.status(404).send(result);
@@ -284,17 +264,15 @@ app.get("/users-answers", authenticate, authorize("user"), async (req, res) => {
     }
   } else {
     res.status(200).send(result);
-    //res.json(result);
   }
 });
+//use in personal form to get the next questions for client
 app.get(
   "/translate-answers",
   authenticate,
   authorize("user"),
   async (req, res) => {
-    console.log("Answer", req.query.answer);
     const result = await database.getAnswersID(req.query.answer);
-    console.log("The final result is 2", result);
     if (result.error) {
       if (result.error === "Internal server error") {
         res.status(404).send(result);
@@ -303,51 +281,10 @@ app.get(
       }
     } else {
       res.status(200).send(result.toString());
-      // res.status(200).json(result);
     }
   }
 );
-
-// API route to get the next question based on the answer
-app.get(
-  "/api/next-question/:answerId",
-  authenticate,
-  authorize("user"),
-  async (req, res) => {
-    const answerId = req.params.answerId;
-    try {
-      const atoqResult = await pool.query(
-        "SELECT next_question_id FROM atoq WHERE answer_id = $1",
-        [answerId]
-      );
-      const atoq = atoqResult.rows[0];
-
-      if (atoq) {
-        const nextQuestionResult = await pool.query(
-          "SELECT * FROM questions WHERE id = $1",
-          [atoq.next_question_id]
-        );
-        const nextQuestion = nextQuestionResult.rows[0];
-
-        if (nextQuestion) {
-          const answersResult = await pool.query(
-            "SELECT * FROM answers WHERE question_id = $1",
-            [nextQuestion.id]
-          );
-          nextQuestion.answers = answersResult.rows;
-          res.json(nextQuestion);
-        } else {
-          res.status(404).json({ error: "Next question not found" });
-        }
-      } else {
-        res.status(404).json({ error: "No mapping found for this answer" });
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Internal server error" });
-    }
-  }
-);
-
+//save answers of the client
 app.post("/save-answers", authenticate, authorize("user"), (req, res) => {
   const { formData, userID } = req.body;
   database
