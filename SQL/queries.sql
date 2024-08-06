@@ -36,8 +36,7 @@ CREATE TABLE qtoa (
 );
 
 --copy from CSV file
-\copy qtoa(answerid, questionid) FROM
- 'C:/Users/admin/Desktop/HIT/Industry Project/qtoa.csv' CSV HEADER;
+\copy qtoa(answerid, questionid) FROM 'C:/Users/admin/Desktop/HIT/Industry Project/qtoa.csv' CSV HEADER;
 
 --questions table creation
 CREATE TABLE questions (
@@ -47,8 +46,7 @@ CREATE TABLE questions (
 );
 
 --copy from CSV file
-\copy questions(id, page, question) F
-ROM 'C:/Users/admin/Desktop/HIT/Industry Project/questions.csv' CSV HEADER;
+\copy questions(id, page, question) FROM 'C:/Users/admin/Desktop/HIT/Industry Project/questions.csv' CSV HEADER;
 
 --users_answers table creation
 CREATE TABLE users_answers (
