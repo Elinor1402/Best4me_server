@@ -126,7 +126,8 @@ const sendEmail = async function (email, companyID) {
                 link: http://localhost:3001/user-log-in`,
         };
 
-        transporter.sendMail(mailOptions, function (error, info) {});
+
+        transporter.sendMail(mailOptions, function (error, info) { });
       })
       .catch((err) => {
         throw new Error("Failed to send email");
@@ -136,4 +137,37 @@ const sendEmail = async function (email, companyID) {
   }
 };
 
-module.exports = { readCSV, readXLSX, sendEmail };
+
+const sendAdminEmail = async function (email, password, companyID) {
+  try {
+    // Regular expression for validating an email address
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      throw new Error(
+        "Recipient email is not defined or is not in a valid format"
+      );
+    }
+    var transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "best4mecomp@gmail.com",
+        pass: "pdhmsyzlivvdzplw",
+      },
+    });
+
+    var mailOptions = {
+      from: "best4mecomp@gmail.com",
+      to: email,
+      subject: "Welcome to Best4me Company",
+      text: `Your Comany ID is: ${companyID} and your password is: ${password}`,
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) { });
+
+
+  } catch (error) {
+    throw error;
+  }
+};
+
+module.exports = { readCSV, readXLSX, sendEmail, sendAdminEmail };

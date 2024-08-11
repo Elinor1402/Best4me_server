@@ -1,11 +1,19 @@
 //const bcryptjs = require('bcryptjs');
 const { compareSync } = require("bcryptjs");
 const { Pool } = require("pg");
+<<<<<<< HEAD
+=======
+const email = require("./emails");
+>>>>>>> c037aa18d645bbc32422b6cec139ebb9ae3c5261
 const { user } = require("pg/lib/defaults");
 const bcrypt = require("bcryptjs");
 
 const pool = new Pool({
+<<<<<<< HEAD
   //user: 'fs-info',
+=======
+  // user: 'fs-info',
+>>>>>>> c037aa18d645bbc32422b6cec139ebb9ae3c5261
   user: "postgres",
   //host: '192.114.5.161',
   host: "localhost",
@@ -100,6 +108,7 @@ const register = function (formData) {
       .then(() => {
         if (typeof formData === "object" && formData !== null) {
           if (formData.Password) {
+            email.sendAdminEmail(formData.Email,formData.Password,companyID);
             const hashedPassword = bcrypt.hashSync(formData.Password, 5);
             formData.Password = hashedPassword;
           }

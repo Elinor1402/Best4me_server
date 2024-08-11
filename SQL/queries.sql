@@ -77,3 +77,7 @@ CREATE TABLE company_info (
     "Branch location" TEXT,
     "Organization size" TEXT
 );
+
+
+
+
