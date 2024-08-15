@@ -98,6 +98,7 @@ const sendEmail = async function (email, companyID) {
   try {
     // Regular expression for validating an email address
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    console.log("Email is:", email);
     if (!email || !emailRegex.test(email)) {
       throw new Error(
         "Recipient email is not defined or is not in a valid format"
@@ -122,25 +123,25 @@ const sendEmail = async function (email, companyID) {
           from: "best4mecomp@gmail.com",
           to: email,
           subject: "Welcome to Best4me Company",
-          text: `Your username is: ${userID} and your password is: ${password}
+          text: `Your username is: ${user_id} and your password is: ${password}
                 link: http://localhost:3001/user-log-in`,
         };
-
 
         transporter.sendMail(mailOptions, function (error, info) { });
       })
       .catch((err) => {
         throw new Error("Failed to send email");
       });
+
   } catch (error) {
     throw error;
   }
 };
 
-
 const sendAdminEmail = async function (email, password, companyID) {
   try {
     // Regular expression for validating an email address
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
       throw new Error(
@@ -163,8 +164,6 @@ const sendAdminEmail = async function (email, password, companyID) {
     };
 
     transporter.sendMail(mailOptions, function (error, info) { });
-
-
   } catch (error) {
     throw error;
   }

@@ -1,19 +1,13 @@
 //const bcryptjs = require('bcryptjs');
 const { compareSync } = require("bcryptjs");
 const { Pool } = require("pg");
-<<<<<<< HEAD
-=======
-const email = require("./emails");
->>>>>>> c037aa18d645bbc32422b6cec139ebb9ae3c5261
+// const email = require("./emails");
 const { user } = require("pg/lib/defaults");
 const bcrypt = require("bcryptjs");
 
 const pool = new Pool({
-<<<<<<< HEAD
   //user: 'fs-info',
-=======
-  // user: 'fs-info',
->>>>>>> c037aa18d645bbc32422b6cec139ebb9ae3c5261
+  // user: "fs-info",
   user: "postgres",
   //host: '192.114.5.161',
   host: "localhost",
@@ -100,42 +94,53 @@ const loginUser = function (userID, password) {
   });
 };
 //sign up of admin.
-const register = function (formData) {
-  return new Promise(function (resolve, reject) {
+const register = async function (formData) {
+  try {
     var companyID = Math.floor(1 + Math.random() * 9000);
-    pool
-      .query(`INSERT INTO company_info (company_id) VALUES ($1)`, [companyID])
-      .then(() => {
-        if (typeof formData === "object" && formData !== null) {
-          if (formData.Password) {
-            email.sendAdminEmail(formData.Email,formData.Password,companyID);
-            const hashedPassword = bcrypt.hashSync(formData.Password, 5);
-            formData.Password = hashedPassword;
-          }
 
-          Object.entries(formData).forEach(([key, value], index) => {
-            const sanitizedKey = `"${key.replace(/"/g, '""')}"`;
-            const queryText = `UPDATE company_info SET ${sanitizedKey} = $1 WHERE company_id = $2`;
-            pool
-              .query(queryText, [value, companyID])
-              .then(() => console.log(`Inserted ${key}: ${value}`))
-              .catch((err) => {
-                console.error(`Error inserting ${key}: ${err}`);
-                throw new Error("Server error");
-              });
-          });
-        } else {
-          reject("formData is not an object. It is:", typeof formData);
-        }
-      })
-      .catch((e) => {
-        console.error(e);
-        reject(e.detail);
+    // Check if the email already exists
+    const admin = await pool.query(
+      `SELECT "company_id" FROM "company_info" WHERE "Email" = $1`,
+      [formData.Email]
+    );
+
+    if (admin.rowCount != 0) {
+      console.log("Try check Email exist", admin.rowCount);
+      throw new Error("email already exists, use another one");
+    }
+
+    // Insert into company_info
+    await pool.query(`INSERT INTO company_info (company_id) VALUES ($1)`, [companyID]);
+
+    if (typeof formData === "object" && formData !== null) {
+      if (formData.Password) {
+        const email = require("./emails");
+        email.sendAdminEmail(formData.Email, formData.Password, companyID);
+        const hashedPassword = bcrypt.hashSync(formData.Password, 5);
+        formData.Password = hashedPassword;
+      }
+
+      const updatePromises = Object.entries(formData).map(([key, value]) => {
+        const sanitizedKey = `"${key.replace(/"/g, '""')}"`;
+        const queryText = `UPDATE company_info SET ${sanitizedKey} = $1 WHERE company_id = $2`;
+        return pool.query(queryText, [value, companyID]);
       });
-    var message = `${companyID}`;
-    resolve(message);
-  });
+
+      // Wait for all updates to complete
+      await Promise.all(updatePromises);
+
+    } else {
+      throw new Error("formData is not an object. It is:", typeof formData);
+    }
+
+    return `${companyID}`;
+
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 };
+
 //delete client amswers by his ID
 const deleteUsersAnswers = async function (userID) {
   const deleteQuery = "DELETE FROM users_answers WHERE user_id = $1;";
@@ -150,6 +155,7 @@ const deleteUsersAnswers = async function (userID) {
 // This func gets email,password,userID and companyID and saves them in the database.
 // Each email is a employee
 const saveEmail = function (email, password, companyID, userID) {
+  console.log("All data", email, password, companyID, userID);
   return new Promise(function (resolve, reject) {
     const date = new Date();
     const hashedPassword = bcrypt.hashSync(password, 5);
@@ -445,18 +451,4 @@ const getAnswersID = async function (answer) {
   }
 };
 
-module.exports = {
-  register,
-  login,
-  findAdmin,
-  findUser,
-  saveEmail,
-  saveAnswers,
-  getusers,
-  updateFillStatus,
-  getFirstQuestions,
-  getQuestions,
-  loginUser,
-  getAnswersID,
-  getUserAnswers,
-};
+module.exports = { register, login, findAdmin, findUser, saveEmail, saveAnswers, getusers, updateFillStatus, getFirstQuestions, getQuestions, loginUser, getAnswersID, getUserAnswers };
