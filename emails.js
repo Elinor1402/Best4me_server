@@ -123,7 +123,7 @@ const sendEmail = async function (email, companyID) {
           from: "best4mecomp@gmail.com",
           to: email,
           subject: "Welcome to Best4me Company",
-          text: `Your username is: ${user_id} and your password is: ${password}
+          text: `Your username is: ${userID} and your password is: ${password}
                 link: http://localhost:3001/user-log-in`,
         };
 
