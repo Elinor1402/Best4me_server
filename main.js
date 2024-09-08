@@ -19,6 +19,15 @@ app.use(passport.initialize());
 const fs = require("fs");
 const axios = require("axios");
 
+const redis = require('redis');
+const redisClient = redis.createClient(); // defaults to localhost:6379
+
+redisClient.on('error', (err) => {
+  console.error('Redis error:', err);
+});
+
+
+
 app.use(
   fileUpload({
     createParentPath: true,
@@ -301,8 +310,66 @@ app.post("/save-answers", authenticate, authorize("user"), (req, res) => {
       res.status(400).send(err.toString());
     });
 });
+//////////////////////////////////////////////////////////////
+// Function to generate a random 6-digit code
+const generateCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString(); // Generates a random 6-digit code
+};
+
+app.post('/send-code', async (req, res) => {
+  try{
+    if (! redisClient.isOpen) {
+      await  redisClient.connect();
+  }
+   
+    const { email } = req.body;
+    const r = await database.findReferentEmail(email)
+  // Generate a 6-digit code
+    const code = generateCode();
+    emails.sendResetEmail(email,code);
+  // Store the code in Redis with an expiration time of 10 minutes (600 seconds)
+    redisClient.set(`verifyCode:${email}`, 60, code);
+    redisClient.quit();
+  // Send email with the code
+  // emails.sendResetEmail(email,code);
+  res.status(200).send('Verification code sent to email' );
+  }
+  catch(err){
+    // res.status(500).json({ message: err});
+    res.status(500).send(err.toString());
+  }
+});
+
+app.post('/verify-code', (req, res) => {
+  const { email, code } = req.body;
+
+  // Retrieve the code from Redis
+  redisClient.get(`verifyCode:${email}`, (err, storedCode) => {
+      if (err) {
+          return res.status(500).json({ message: 'Server error' });
+      }
+
+      if (!storedCode) {
+          return res.status(400).json({ message: 'Code expired or does not exist' });
+      }
+
+      if (storedCode !== code) {
+          return res.status(400).json({ message: 'Invalid code' });
+      }
+
+      // Code is correct
+      res.status(200).json({ message: 'Code verified successfully' });
+      
+      // Optionally, delete the code after successful verification
+      redisClient.del(`verifyCode:${email}`);
+  });
+});
+
+
 
 const port = 3000;
 app.listen(port, () => {
   console.log(`App listening at http://localhost:${port}`);
 });
+
+

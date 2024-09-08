@@ -236,6 +236,26 @@ const findAdmin = function (companyID) {
       });
   });
 };
+
+const findReferentEmail = function (email) {
+  return new Promise(function (resolve, reject) {
+    pool
+      .query(`SELECT * FROM company_info WHERE "Referent email" = $1`, [email])
+      .then((referent) => {
+        if (!referent.rows.length){
+          console.log("Reject email")
+          reject(new Error(`Email not found`));}
+        else {
+          resolve(true);
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+        reject(err);
+      });
+  });
+}
+
 //use this in passport.js for authentication and authorization.
 const findUser = function (userID) {
   return new Promise(function (resolve, reject) {
@@ -456,4 +476,4 @@ const getAnswersID = async function (answer) {
   }
 };
 
-module.exports = { register, login, findAdmin, findUser, saveEmail, saveAnswers, getusers, updateFillStatus, getFirstQuestions, getQuestions, loginUser, getAnswersID, getUserAnswers };
+module.exports = { register, login, findAdmin, findUser, saveEmail, saveAnswers, getusers, updateFillStatus, getFirstQuestions, getQuestions, loginUser, getAnswersID, getUserAnswers, findReferentEmail };

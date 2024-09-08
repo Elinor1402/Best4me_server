@@ -21,7 +21,8 @@ CREATE TABLE atoq (
 --q_appearance table creation
 CREATE TABLE q_appearance (
     questionid SERIAL PRIMARY KEY,
-    answer_type INTEGER
+    answer_type INTEGER,
+    input_type TEXT
 );
 
 --copy from CSV file
@@ -68,14 +69,21 @@ CREATE TABLE users_email (
 --company_info table creation
 CREATE TABLE company_info (
     company_id INTEGER PRIMARY KEY,
-    "Email" VARCHAR(255),
+    "Referent email" VARCHAR(255),
     "Password" TEXT,
     "Organizations name" TEXT,
     "Organizations domain" TEXT,
     "Year of establishment" INTEGER,
     "The organization is local or global" TEXT,
     "Branch location" TEXT,
-    "Organization size" TEXT
+    "Name of Survey" TEXT,
+    "First name" TEXT,
+    "Last name" TEXT,
+    "Product Development vs Purchase Decision" TEXT,
+    "Business type" TEXT,
+    "High level management" INTEGER,
+    "Middle level management" INTEGER,
+    "Employees" INTEGER
 );
 
 

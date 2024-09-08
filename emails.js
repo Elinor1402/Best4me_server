@@ -169,4 +169,36 @@ const sendAdminEmail = async function (email, password, companyID) {
   }
 };
 
-module.exports = { readCSV, readXLSX, sendEmail, sendAdminEmail };
+const sendResetEmail = async function (email, code) {
+  try {
+    // Regular expression for validating an email address
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      throw new Error(
+        "Recipient email is not defined or is not in a valid format"
+      );
+    }
+    var transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "best4mecomp@gmail.com",
+        pass: "pdhmsyzlivvdzplw",
+      },
+    });
+
+    var mailOptions = {
+      from: "best4mecomp@gmail.com",
+      to: email,
+      subject: "Your Verification Code",
+      text: `Your verification code is: ${code}`,
+    };
+
+    transporter.sendMail(mailOptions, function (error, info) { });
+  } catch (error) {
+    throw error;
+  }
+
+}
+
+module.exports = { readCSV, readXLSX, sendEmail, sendAdminEmail, sendResetEmail };
