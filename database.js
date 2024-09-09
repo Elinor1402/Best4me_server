@@ -8,11 +8,11 @@ const bcrypt = require("bcryptjs");
 const pool = new Pool({
   //user: 'fs-info',
   // user: "fs-info",
-  user: "postgres",
+  user: process.POSTGRES_USER,
   //host: '192.114.5.161',
   host: "localhost",
-  database: "fs-info-db",
-  password: "Elinorz2000",
+  database: process.env.POSTGRES_DB,
+  password: process.env.POSTGRES_PASSWORD,
   port: 5432,
   max: 40, // Max 20 connection
   connectionTimeoutMillis: 0, // if all the connection are busy, "0" means "wait forever" (we can change it to shorter time)

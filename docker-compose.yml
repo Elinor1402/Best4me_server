@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./postgress/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./postgress/answers.csv:/docker-entrypoint-initdb.d/answers.csv
+      - ./postgress/atoq.csv:/docker-entrypoint-initdb.d/atoq.csv
+      - ./postgress/q_appearance.csv:/docker-entrypoint-initdb.d/q_appearance.csv
+      - ./postgress/qtoa.csv:/docker-entrypoint-initdb.d/qtoa.csv
+      - ./postgress/questions.csv:/docker-entrypoint-initdb.d/questions.csv
+    networks:
+      - postgres-network
+
+networks:
+  postgres-network:
+    driver: bridge

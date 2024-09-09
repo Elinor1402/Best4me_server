@@ -1,61 +1,59 @@
---answers table creation
+-- answers table creation
 CREATE TABLE answers (
     id SERIAL PRIMARY KEY,
     answer TEXT NOT NULL
 );
 
---copy from CSV file
-\copy answers(id, answer) FROM 'C:/Users/admin/Desktop/HIT/Industry Project/answers.csv' CSV HEADER;
+-- copy from CSV file
+\copy answers(id, answer) FROM '/docker-entrypoint-initdb.d/answers.csv' CSV HEADER;
 
---atoq table creation
+-- atoq table creation
 CREATE TABLE atoq (
     next_questionid INTEGER NOT NULL,
     answerid INTEGER NOT NULL,
     PRIMARY KEY (next_questionid, answerid)
 );
 
---copy from CSV file
-\copy atoq(next_questionid, answerid)
- FROM 'C:/Users/admin/Desktop/HIT/Industry Project/atoq.csv' CSV HEADER;
+-- copy from CSV file
+\copy atoq(next_questionid, answerid) FROM '/docker-entrypoint-initdb.d/atoq.csv' CSV HEADER;
 
---q_appearance table creation
+-- q_appearance table creation
 CREATE TABLE q_appearance (
     questionid SERIAL PRIMARY KEY,
     answer_type INTEGER,
     input_type TEXT
 );
 
---copy from CSV file
-\copy q_appearance(questionid, answer
-_type) FROM 'C:/Users/admin/Desktop/HIT/Industry Project/q_appearance.csv' CSV HEADER;
+-- copy from CSV file
+\copy q_appearance(questionid, answer_type,input_type) FROM '/docker-entrypoint-initdb.d/q_appearance.csv' CSV HEADER;
 
---qtoa table creation
+-- qtoa table creation
 CREATE TABLE qtoa (
     answerid INTEGER NOT NULL,
     questionid INTEGER NOT NULL,
     PRIMARY KEY (answerid, questionid)
 );
 
---copy from CSV file
-\copy qtoa(answerid, questionid) FROM 'C:/Users/admin/Desktop/HIT/Industry Project/qtoa.csv' CSV HEADER;
+-- copy from CSV file
+\copy qtoa(answerid, questionid) FROM '/docker-entrypoint-initdb.d/qtoa.csv' CSV HEADER;
 
---questions table creation
+-- questions table creation
 CREATE TABLE questions (
     id SERIAL PRIMARY KEY,
     page TEXT,
     question TEXT
 );
 
---copy from CSV file
-\copy questions(id, page, question) FROM 'C:/Users/admin/Desktop/HIT/Industry Project/questions.csv' CSV HEADER;
+-- copy from CSV file
+\copy questions(id, page, question) FROM '/docker-entrypoint-initdb.d/questions.csv' CSV HEADER;
 
---users_answers table creation
+-- users_answers table creation
 CREATE TABLE users_answers (
     user_id INTEGER PRIMARY KEY,
     answers JSONB
 );
 
---users_email table creation
+-- users_email table creation
 CREATE TABLE users_email (
     user_id INTEGER NOT NULL,
     email TEXT,
@@ -66,7 +64,7 @@ CREATE TABLE users_email (
     PRIMARY KEY (user_id, company_id)
 );
 
---company_info table creation
+-- company_info table creation
 CREATE TABLE company_info (
     company_id INTEGER PRIMARY KEY,
     "Referent email" VARCHAR(255),
@@ -85,7 +83,3 @@ CREATE TABLE company_info (
     "Middle level management" INTEGER,
     "Employees" INTEGER
 );
-
-
-
-

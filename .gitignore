@@ -4,4 +4,4 @@ node_modules
 emails.csv
 emails.XLSX
 emails1.csv
-.vscode
+postgress/*.csv
