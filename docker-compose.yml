@@ -17,9 +17,14 @@ services:
       - ./postgress/q_appearance.csv:/docker-entrypoint-initdb.d/q_appearance.csv
       - ./postgress/qtoa.csv:/docker-entrypoint-initdb.d/qtoa.csv
       - ./postgress/questions.csv:/docker-entrypoint-initdb.d/questions.csv
-    networks:
-      - postgres-network
+      - ./postgress/data:/var/lib/postgresql/data
 
-networks:
-  postgres-network:
-    driver: bridge
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis_dаta:/root/redis
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}

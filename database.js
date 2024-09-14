@@ -8,7 +8,7 @@ const bcrypt = require("bcryptjs");
 const pool = new Pool({
   //user: 'fs-info',
   // user: "fs-info",
-  user: process.POSTGRES_USER,
+  user: process.env.POSTGRES_USER,
   //host: '192.114.5.161',
   host: "localhost",
   database: process.env.POSTGRES_DB,

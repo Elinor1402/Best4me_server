@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
@@ -8,7 +9,6 @@ const cors = require("cors");
 const passport = require("passport");
 const path = require("path");
 const app = express();
-require("dotenv").config();
 require("./passport");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -20,7 +20,7 @@ const fs = require("fs");
 const axios = require("axios");
 
 const redis = require('redis');
-const redisClient = redis.createClient(); // defaults to localhost:6379
+const redisClient = redis.createClient({ password: process.env.REDIS_PASSWORD }); // defaults to localhost:6379
 
 redisClient.on('error', (err) => {
   console.error('Redis error:', err);
