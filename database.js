@@ -237,7 +237,7 @@ const findAdmin = function (companyID) {
   });
 };
 
-const findReferentEmail = function (email) {
+const findAdminEmail = function (email) {
   return new Promise(function (resolve, reject) {
     pool
       .query(`SELECT * FROM company_info WHERE "Referent email" = $1`, [email])
@@ -255,7 +255,32 @@ const findReferentEmail = function (email) {
       });
   });
 }
-
+const updateAdminPassword =async function (email, newPassword, confirmPassword) {
+  try{
+    if(newPassword.length < 6)
+      // return { error: "Password must be at least 6 characters long"};
+      throw new Error("Password must be at least 6 characters long");
+    if(newPassword != confirmPassword)
+      // return { error: "passwords doesn't match"};
+      throw new Error("passwords doesn't match")
+    const hashedPassword = bcrypt.hashSync(newPassword, 5);
+    await pool.query( `UPDATE company_info SET "Password" = $1 WHERE "Referent email" = $2`,
+        [hashedPassword, email]
+      )
+      const emails = require("./emails");
+      const result = await pool.query(`SELECT company_id FROM company_info WHERE "Referent email" = $1`,
+        [email]
+      );
+      console.log("Result is",result);
+      emails.sendAdminEmail(email, newPassword, result.rows[0].company_id);
+      // return 'Password changed successfully';
+  }
+ catch (error) {
+  console.log(error);
+  // return { error: "Internal server error" };
+  throw error;
+}
+}
 //use this in passport.js for authentication and authorization.
 const findUser = function (userID) {
   return new Promise(function (resolve, reject) {
@@ -319,7 +344,7 @@ const getFirstQuestions = async function () {
     // Select all questions with page = 1
     const questionsResult = await pool.query(
       "SELECT * FROM questions WHERE page = $1 or page = $2 ORDER BY id ASC",
-      [1,1.1]
+      [1, 1.1]
     );
     const questions = questionsResult.rows;
     // Fetch answers for each question using qtoa table
@@ -476,4 +501,4 @@ const getAnswersID = async function (answer) {
   }
 };
 
-module.exports = { register, login, findAdmin, findUser, saveEmail, saveAnswers, getusers, updateFillStatus, getFirstQuestions, getQuestions, loginUser, getAnswersID, getUserAnswers, findReferentEmail };
+module.exports = { register, login, findAdmin, findUser, saveEmail, saveAnswers, getusers, updateFillStatus, getFirstQuestions, getQuestions, loginUser, getAnswersID, getUserAnswers, findAdminEmail, updateAdminPassword };

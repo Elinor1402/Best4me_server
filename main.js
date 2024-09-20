@@ -26,6 +26,16 @@ redisClient.on('error', (err) => {
   console.error('Redis error:', err);
 });
 
+(async () => {
+  if (!redisClient.isOpen) {
+    await redisClient.connect();
+  }
+})();
+
+// Gracefully disconnect Redis when the app terminates
+// process.on('exit', () => {
+//   redisClient.quit(); // Close connection on exit
+// });
 
 
 app.use(
@@ -318,21 +328,17 @@ const generateCode = () => {
 
 app.post('/send-code', async (req, res) => {
   try{
-    if (! redisClient.isOpen) {
-      await  redisClient.connect();
-  }
-   
     const { email } = req.body;
-    const r = await database.findReferentEmail(email)
+    const r = await database.findAdminEmail(email)
   // Generate a 6-digit code
     const code = generateCode();
     emails.sendResetEmail(email,code);
   // Store the code in Redis with an expiration time of 10 minutes (600 seconds)
-    redisClient.set(`verifyCode:${email}`, 60, code);
-    redisClient.quit();
+    redisClient.setEx(`verifyCode:${email}`, 120, code);
+    // redisClient.quit();
   // Send email with the code
   // emails.sendResetEmail(email,code);
-  res.status(200).send('Verification code sent to email' );
+  res.status(200).send('Verification code sent to your email');
   }
   catch(err){
     // res.status(500).json({ message: err});
@@ -340,32 +346,39 @@ app.post('/send-code', async (req, res) => {
   }
 });
 
-app.post('/verify-code', (req, res) => {
+app.post('/verify-code', async(req, res) => {
+  
   const { email, code } = req.body;
+  console.log("The code is", code);
+  try {
+    // Retrieve the code from Redis
+    const storedCode = await redisClient.get(`verifyCode:${email}`);
+    console.log("The stored code is", storedCode);
+    if (!storedCode) {
+      return res.status(400).send('Code expired or does not exist');
+    }
 
-  // Retrieve the code from Redis
-  redisClient.get(`verifyCode:${email}`, (err, storedCode) => {
-      if (err) {
-          return res.status(500).json({ message: 'Server error' });
-      }
+    if (storedCode !== code) {
+      return res.status(400).send('Invalid code');
+    }
 
-      if (!storedCode) {
-          return res.status(400).json({ message: 'Code expired or does not exist' });
-      }
-
-      if (storedCode !== code) {
-          return res.status(400).json({ message: 'Invalid code' });
-      }
-
-      // Code is correct
-      res.status(200).json({ message: 'Code verified successfully' });
-      
-      // Optionally, delete the code after successful verification
-      redisClient.del(`verifyCode:${email}`);
-  });
+    // Code is correct, delete it after successful verification
+    await redisClient.del(`verifyCode:${email}`);
+    res.status(200).send('Code verified successfully');
+  } catch (err) {
+    res.status(500).send(err.toString());
+  }
 });
 
-
+app.post('/reset-pass', async(req, res) => {
+  try {
+  const { email, newPassword, confirmPassword } = req.body;
+  await database.updateAdminPassword(email, newPassword, confirmPassword);
+  res.status(200).send('Password changed successfully');
+  }  catch (err) {
+    res.status(500).send(err.toString());
+  }
+});
 
 const port = 3000;
 app.listen(port, () => {
