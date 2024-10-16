@@ -1,4 +1,4 @@
-"id","page","question","level","matric"
+"id","page","question"
 0,"1","Name of Survey"
 1,"1","First name"
 2,"1","Last name"
@@ -33,53 +33,3 @@
 31,"1.1","High level management"
 32,"1.1","Middle level management"
 33,"1.1","Employees"
-34,null,"How important is it for you that the information provided by your work systems is accurate and reliable?",null,null
-35,null,"How crucial do you think it is for your work systems to be consistently available and accessible?",null,null
-36,null,"Have you ever encountered difficulties due to your work systems not being flexible enough to accommodate changes?",null,null
-37,null,"How important is it for you that the information provided by your work systems is accurate and error-free?",null,null
-38,null,"How important is it for you that your work systems perform tasks and processes quickly and efficiently?",null,null
-39,null,"In your opinion, how would a more flexible work system benefit your daily work?",null,null
-40,null,"How do you feel your work system meets your functional needs?",null,null
-41,null,"Does visual design of your work system help you accomplish your tasks effectively?",null,null
-42,null,"How important do you believe the integrity of the information system is in your daily work?",null,null
-43,null,"Have you ever faced challenges or made decisions based on incorrect information from your work systems?",null,null
-44,null,"How satisfied are you with the current availability and reliability of your work systems?",null,null
-45,null,"In your opinion, how much does the ability of your work systems to easily accommodate updates or changes impact your daily work?",null,null
-46,null,"Do you feel that your work systems adequately validate and verify the information they provide?",null,null
-47,null,"How critical is fast system response and processing speed for your daily tasks?",null,null
-48,null,"Have you ever faced difficulties because your work systems couldn't be easily customized to fit specific needs?",null,null
-49,null,"Can you describe how often you currently use the system?",null,null
-50,null,"How satisfied are you with the interface of the information system?",null,null
-51,null,"In your opinion, how does the accuracy of your work systems impact your ability to perform your job effectively?",null,null
-52,null,"How dependent are you on your work systems being operational to carry out your daily responsibilities?",null,null
-53,null,"How important do you think it is for your work systems to be adaptable to changes in business requirements?",null,null
-54,null,"How critical is accurate information from your work systems for making informed decisions in your role?",null,null
-55,null,"Do you feel that our systems are optimized to handle your workload efficiently?",null,null
-56,null,"At what level does the flexibility of your work systems affect your productivity and efficiency?",null,null
-57,null,"What are your score on the overall functionality of your current work information systems?",null,null
-58,null,"In general, how does the interface impact your ability to effectively use the information system?",null,null
-59,null,"In your opinion, how much does the ability of your work systems to easily accommodate updates or changes impact your daily work?",null,null
-60,null,"Do you feel that your work systems adequately validate and verify the information they provide?",null,null
-61,null,"How satisfied are you with the speed and efficiency of your current developed work systems?",null,null
-62,null,"How satisfied are you with the ease of use with the interface of the information system?",null,null
-63,null,"How important do you think it is for your work systems to be adaptable to changes in business requirements?",null,null
-64,null,"How important do you think it is for your work systems to be adaptable to changes in business requirements?",null,null
-65,null,"How important is it for you that the information provided by your work systems is accurate and error-free?",null,null
-66,null,"Do you feel that your work systems are optimized to handle your workload efficiently?",null,null
-67,null,"In general, how does the interface impact your ability to effectively use the information system?",null,null
-68,null,"How important is it for you that the information provided by your work systems is accurate and error-free?",null,null
-69,null,"Do you feel that your work systems are optimized to handle your workload efficiently?",null,null
-70,null,"In general, how does the interface impact your ability to effectively use the information system?",null,null
-71,null,"Have you ever encountered difficulties due to your work systems not being flexible enough to accommodate changes?",null,null
-72,null,"How important is it for you that the information provided by your work systems is accurate and error-free?",null,null
-73,null,"How important is it for you that your work systems perform tasks and processes quickly and efficiently?",null,null
-74,null,"Please give a score of importance of visual design and layout of the interface?",null,null
-75,null,"Have you ever encountered difficulties due to your work systems not being flexible enough to accommodate changes?",null,null
-76,null,"How important is it for you that the information provided by your work systems is accurate and error-free?",null,null
-77,null,"How important is it for you that your work systems perform tasks and processes quickly and efficiently?",null,null
-78,null,"Please give a score of importance of visual design and layout of the interface?",null,null
-79,null,"In your opinion, how much does the ability of your work systems to easily accommodate updates or changes impact your daily work?",null,null
-80,null,"Do you feel that your work systems adequately validate and verify the information they provide?",null,null
-81,null,"How satisfied are you with the speed and efficiency of your current developed work systems?",null,null
-82,null,"How satisfied are you with the ease of use with the interface of the information system?",null,null
-

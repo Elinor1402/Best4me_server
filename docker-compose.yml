@@ -1,6 +1,17 @@
-version: '3.8'
-
 services:
+  app:
+    build: .
+    container_name: node-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - postgres
+      - redis
+
   postgres:
     image: postgres:latest
     container_name: postgres-db
@@ -9,7 +20,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - ./postgress/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./postgress/answers.csv:/docker-entrypoint-initdb.d/answers.csv
@@ -21,6 +32,7 @@ services:
 
   redis:
     image: redis:latest
+    container_name: redis-server
     restart: always
     ports:
       - "6379:6379"

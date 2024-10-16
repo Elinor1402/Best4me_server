@@ -10,7 +10,8 @@ const pool = new Pool({
   // user: "fs-info",
   user: process.env.POSTGRES_USER,
   //host: '192.114.5.161',
-  host: "localhost",
+  // host: "localhost",
+  host: 'postgres',
   database: process.env.POSTGRES_DB,
   password: process.env.POSTGRES_PASSWORD,
   port: 5432,
@@ -242,9 +243,10 @@ const findReferentEmail = function (email) {
     pool
       .query(`SELECT * FROM company_info WHERE "Referent email" = $1`, [email])
       .then((referent) => {
-        if (!referent.rows.length){
+        if (!referent.rows.length) {
           console.log("Reject email")
-          reject(new Error(`Email not found`));}
+          reject(new Error(`Email not found`));
+        }
         else {
           resolve(true);
         }
@@ -319,7 +321,7 @@ const getFirstQuestions = async function () {
     // Select all questions with page = 1
     const questionsResult = await pool.query(
       "SELECT * FROM questions WHERE page = $1 or page = $2 ORDER BY id ASC",
-      [1,1.1]
+      [1, 1.1]
     );
     const questions = questionsResult.rows;
     // Fetch answers for each question using qtoa table
